@@ -16,13 +16,6 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
@@ -33,7 +26,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  appVersion: z.string().regex(/^\d+\.\d+\.\d+$/, "Must be semver format (e.g., 1.0.0)"),
+  appVersion: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/, "Must be semver format (e.g., 1.0.0)"),
   description: z.string().optional(),
   isMandatory: z.boolean().default(false),
   isDisabled: z.boolean().default(false),
@@ -71,18 +66,18 @@ export const ReleaseDialog = ({
       const formData = new FormData();
       formData.append("package", selectedFile);
       formData.append("packageInfo", JSON.stringify(values));
-
-      const response = await api.managementAppsAppNameDeploymentsDeploymentNameReleasePost(
-        appName,
-        deploymentName,
-        selectedFile,
-        JSON.stringify(values)
-      );
-      return response.data;
+      // managementAppsAppNameDeploymentsDeploymentNameReleasePost
+      const response =
+        await api.management.appsAppNameDeploymentsDeploymentNameReleaseCreate(
+          appName,
+          deploymentName,
+          { package: selectedFile, packageInfo: JSON.stringify(values) }
+        );
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["deployment", appName, deploymentName]
+        queryKey: ["deployment", appName, deploymentName],
       });
       onOpenChange(false);
       form.reset();
@@ -208,9 +203,7 @@ export const ReleaseDialog = ({
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Disabled
-                      </FormLabel>
+                      <FormLabel className="text-base">Disabled</FormLabel>
                       <FormDescription>
                         Prevent this release from being downloaded
                       </FormDescription>

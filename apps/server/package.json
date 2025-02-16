@@ -1,5 +1,5 @@
 {
-  "name": "code-push-cloudflare-workers",
+  "name": "server",
   "scripts": {
     "dev": "wrangler dev",
     "publish": "wrangler publish",

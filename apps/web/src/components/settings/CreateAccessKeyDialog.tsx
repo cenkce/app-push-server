@@ -48,14 +48,16 @@ export const CreateAccessKeyDialog = ({
 
   const createMutation = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await api.managementAccessKeysPost({
-        managementAccessKeysPostRequest: values,
+      // managementAccessKeysPost
+      const response = await api.management.accessKeysCreate({
+        friendlyName: values.friendlyName,
+        ttl: values.ttl,
       });
-      return response.data;
+      return response;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["access-keys"] });
-      setCreatedKey(data.accessKey.name);
+      data.accessKey.name && setCreatedKey(data.accessKey.name);
       form.reset();
     },
   });
@@ -80,7 +82,8 @@ export const CreateAccessKeyDialog = ({
               <p className="text-sm font-mono break-all">{createdKey}</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Make sure to copy your access key now. You won't be able to see it again!
+              Make sure to copy your access key now. You won't be able to see it
+              again!
             </p>
             <DialogFooter>
               <Button
@@ -109,10 +112,7 @@ export const CreateAccessKeyDialog = ({
                 )}
               />
               <DialogFooter>
-                <Button
-                  type="submit"
-                  disabled={createMutation.isPending}
-                >
+                <Button type="submit" disabled={createMutation.isPending}>
                   Create Key
                 </Button>
               </DialogFooter>

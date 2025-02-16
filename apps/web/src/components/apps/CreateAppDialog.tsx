@@ -45,8 +45,8 @@ export const CreateAppDialog = ({
 
   const createMutation = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await api.managementAppsPost(values);
-      return response.data;
+      const response = await api.management.appsCreate(values);
+      return response;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["apps"] });

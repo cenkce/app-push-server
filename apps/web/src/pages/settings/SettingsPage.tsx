@@ -1,7 +1,13 @@
 import { CreateAccessKeyDialog } from "@/components/settings/CreateAccessKeyDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -19,19 +25,22 @@ export const SettingsPage = () => {
   const [isCreateKeyOpen, setIsCreateKeyOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  console.log("SettingsPage.tsx: api");
+
   const { data: accountData } = useQuery({
     queryKey: ["account"],
     queryFn: async () => {
-      const response = await api.managementAccountGet();
-      return response.data;
+      // managementAccountGet
+      const response = await api.management.accountList();
+      return response;
     },
   });
 
   const { data: keysData } = useQuery({
     queryKey: ["access-keys"],
     queryFn: async () => {
-      const response = await api.managementAccessKeysGet();
-      return response.data;
+      const response = await api.management.accessKeysList();
+      return response;
     },
   });
 
@@ -46,9 +55,9 @@ export const SettingsPage = () => {
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -137,7 +146,7 @@ export const SettingsPage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleCopyKey(key.name)}
+                      onClick={() => handleCopyKey(key.name || "")}
                     >
                       {copiedKey === key.name ? (
                         <Check className="h-4 w-4" />

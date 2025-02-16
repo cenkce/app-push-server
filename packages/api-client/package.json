@@ -3,30 +3,32 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/Api.js",
+  "module": "./dist/Api.js",
+  "types": "./dist/Api.d.ts",
   "sideEffects": false,
   "files": ["dist/**"],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "types": "./dist/Api.d.ts",
+      "import": "./dist/Api.js",
+      "require": "./dist/Api.js"
     }
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "rimraf dist && tsc",
+    "dev": "tsc --watch",
     "clean": "rimraf .turbo node_modules dist",
     "lint": "eslint src/",
+    "generate:new": "rimraf src && API_SWAGGER_URL=http://localhost:8787/docs node ./generate.js",
     "generate": "openapi-generator-cli generate -i http://localhost:8787/docs -g typescript-axios -o src --additional-properties=supportsES6=true,withInterfaces=true"
   },
   "dependencies": {
     "axios": "^1.7.9"
   },
   "devDependencies": {
-    "@openapitools/openapi-generator-cli": "^2.15.3",
+    "@openapitools/openapi-generator-cli": "^2.16.3",
+    "swagger-typescript-api": "^13.0.23",
     "rimraf": "^6.0.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3"

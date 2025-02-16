@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/lib/api";
-import type { ManagementAppsGet200Response } from "@code-push-cloudflare-workers/api-client";
+// import type { ManagementAppsGet200Response } from "@code-push-cloudflare-workers/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
@@ -37,15 +37,17 @@ export const AppsPage = () => {
     id: string;
   } | null>(null);
 
-  const { data, isLoading } = useQuery<ManagementAppsGet200Response>({
+  const { data, isLoading } = useQuery({
     queryKey: ["apps"],
     queryFn: async () => {
-      const response = await api.managementAppsGet();
-      return response.data;
+      const response = await api.management.appsList();
+      return response;
     },
   });
 
   const apps = data?.apps ?? [];
+
+  console.log("apps", apps);
 
   return (
     <>
@@ -136,7 +138,7 @@ export const AppsPage = () => {
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link
-                          href="/apps/$appName/collaborators"
+                          to="/apps/$appName/collaborators"
                           params={{ appName: app.name }}
                           className="cursor-pointer"
                         >
@@ -148,7 +150,7 @@ export const AppsPage = () => {
                         onClick={() => {
                           // Copy deployment key to clipboard
                           navigator.clipboard.writeText(
-                            app.deployments[0]?.key ?? "",
+                            app.deployments[0] ?? ""
                           );
                         }}
                       >

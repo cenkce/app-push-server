@@ -2,8 +2,11 @@
   "name": "@ssut/code-push-cloudflare-workers",
   "version": "0.1.0",
   "private": true,
+  "main": "dist/Api.js",
+  "types": "dist/Api.d.ts",
   "scripts": {
     "build": "turbo build",
+    "debug": "turbo dev --debug",
     "dev": "turbo dev",
     "lint": "turbo lint"
   },

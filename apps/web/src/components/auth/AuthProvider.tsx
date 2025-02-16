@@ -16,8 +16,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     queryKey: ['account'],
     queryFn: async () => {
       try {
-        const response = await api.managementAccountGet();
-        return response.data;
+        const response = await api.management.accountList();
+        return response;
       } catch (error) {
         // If unauthorized, clear auth state
         if ((error as any)?.response?.status === 401) {
