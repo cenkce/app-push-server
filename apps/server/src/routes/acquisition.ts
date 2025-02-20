@@ -18,8 +18,8 @@ import {
   UpdateCheckResponseSchema,
 } from "../types/schemas";
 import { convertObjectToSnakeCase } from "../utils/convention";
-import { MetricsManager } from "../utils/metrics";
-import { rolloutStrategy } from "../utils/rollout";
+import { MetricsManager } from "../domain/metrics";
+import { rolloutStrategy } from "../domain/rollout";
 import { normalizeVersion } from "../utils/version";
 
 const router = new OpenAPIHono<Env>();
@@ -292,6 +292,11 @@ router.openapi(routes.updateCheck, async (c) => {
   }
 
   // Handle rollout if specified
+  /**
+   * Rollout support refers to the ability to gradually deliver an update to a percentage of clients rather than releasing it to everyone at once. 
+   * In the code, if a package has a rollout percentage less than 100, only clients whose unique IDs (determined by a rollout strategy function) fall within that percentage will receive the update. 
+   * This helps in testing or slowly releasing updates to monitor for issues before a full rollout.
+   */
   if (
     typeof latestSatisfyingEnabledPackage.rollout === "number" &&
     latestSatisfyingEnabledPackage.rollout < 100

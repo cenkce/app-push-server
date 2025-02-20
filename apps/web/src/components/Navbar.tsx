@@ -5,17 +5,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuthStore } from "@/stores/auth";
+import { useKeycloak } from "@/keycloak/useKeycloak";
 import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Settings, User } from "lucide-react";
 
 export const Navbar = () => {
   const navigate = useNavigate();
-  const { account, logout } = useAuthStore();
+  const { keycloak } = useKeycloak();
+  const account = keycloak.profile;
+
+  console.log("Navbar", account);
 
   const handleLogout = () => {
-    logout();
-    navigate({ to: "/login" });
+    keycloak.logout();
   };
 
   return (
@@ -24,11 +26,9 @@ export const Navbar = () => {
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 hover:opacity-80">
             <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                {account?.name?.charAt(0) ?? "U"}
-              </AvatarFallback>
+              <AvatarFallback>{account?.firstName?.charAt(0) ?? "U"}</AvatarFallback>
             </Avatar>
-            <span className="hidden md:inline">{account?.name}</span>
+            <span className="hidden md:inline">{account?.firstName}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>

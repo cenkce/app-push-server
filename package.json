@@ -7,10 +7,12 @@
   "scripts": {
     "build": "turbo build",
     "debug": "turbo dev --debug",
+    "test": "turbo test",
     "dev": "turbo dev",
     "lint": "turbo lint"
   },
   "devDependencies": {
+    "turbo": "2.4.2",
     "@biomejs/biome": "^1.9.4",
     "typescript": "^5.7.3"
   },

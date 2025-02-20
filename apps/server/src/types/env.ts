@@ -12,5 +12,8 @@ export interface Env {
     R2_BUCKET_NAME: string;
     R2_ACCESS_KEY_ID: string;
     R2_SECRET_ACCESS_KEY: string;
+    KEYCLOAK_REALM: string;
+    KEYCLOAK_URL: string;
+    KEYCLOAK_CLIENT_ID: string;
   };
 }

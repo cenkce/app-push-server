@@ -18,7 +18,7 @@ import {
   type PackageInfo,
   PackageSchema,
 } from "../types/schemas";
-import { MetricsManager } from "../utils/metrics";
+import { MetricsManager } from "../domain/metrics";
 import { createPackageDiffer } from "../utils/package-differ";
 import {
   generateAccessKey,
@@ -662,7 +662,7 @@ router.openapi(routes.account.get, async (c) => {
   const storage = getStorageProvider(c);
   const accountId = c.var.auth.accountId;
 
-  const account = await storage.getAccount(accountId);
+  const account = await storage.getAccountByEmail(accountId);
   return c.json({
     account,
   });

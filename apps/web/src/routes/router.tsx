@@ -1,5 +1,4 @@
 import { Layout } from "@/components/Layout";
-import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AppDetailPage } from "@/pages/apps/AppDetailPage";
 import { AppsPage } from "@/pages/apps/AppsPage";
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -18,6 +17,7 @@ import {
 // Auth guard
 const authGuard = () => {
   const isAuthenticated = useAuthStore.getState().isAuthenticated;
+
   if (!isAuthenticated) {
     throw redirect({
       to: "/login",
@@ -32,11 +32,9 @@ const authGuard = () => {
 // Root route
 const rootRoute = createRootRoute({
   component: () => (
-    <AuthProvider>
-      <Layout>
-        <Outlet />
-      </Layout>
-    </AuthProvider>
+    <Layout>
+      <Outlet />
+    </Layout>
   ),
 });
 

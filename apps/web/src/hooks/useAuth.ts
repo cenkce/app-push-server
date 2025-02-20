@@ -15,7 +15,7 @@ export const useAuth = (requireAuth = true) => {
         navigate({
           to: "/login",
           search: {
-            redirect_to: window.location.pathname,
+            redirect_to: window.location.href,
           },
         });
       }

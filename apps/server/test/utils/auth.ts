@@ -5,10 +5,9 @@ import { z } from "zod";
 import { accessKey, account } from "../../src/db/schema";
 import {
   type AccessKey,
-  AccessKeySchema,
   type Account,
 } from "../../src/types/schemas";
-import { sign } from "../../src/utils/jwt";
+import { sign } from "../../src/domain/jwt";
 import { generateKey } from "../../src/utils/security";
 
 export interface TestUser {
