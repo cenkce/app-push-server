@@ -165,12 +165,10 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
         accountId = await storage.getAccountIdFromAccessKey(token);
         if (accountId) account = await storage.getAccount(accountId as string);
       } catch (e) {
-        if(e instanceof Error && 'code' in e &&  e.code === ErrorCode.Expired){
+        if (e instanceof Error && "code" in e && e.code === ErrorCode.Expired) {
           throw new HTTPException(401, { message: "Access key expired" });
-        } else if(e instanceof Error)
-          console.warn(e.message, token);
-        else
-          console.warn("Access key not found");
+        } else if (e instanceof Error) console.log(e.message);
+        else console.log("Access key not found");
       }
       // if there is a valid access key, set auth context and continue
       if (account) {
@@ -195,28 +193,36 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
         throw new HTTPException(401, { message: "Invalid access token" });
       }
 
-      account = await storage.getAccountByEmail(res.email);
-      accountId = account?.id;
-
       try {
-        if (!account) {
-          // Create new account if token is valid but account is not found
-          accountId = await storage.addAccount({
-            email: res.email as string,
-            name: res.name,
-            ssoId: res.sub,
-            createdTime: Date.now(),
-            linkedProviders: ["Keycloak"],
-          });
-        }
+        account = await storage.getAccountByEmail(res.email);
+
+        accountId = account?.id;
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === ErrorCode.NotFound
+        ) {
+          if (!account) {
+            // Create new account if token is valid but account is not found
+            accountId = await storage.addAccount({
+              email: res.email as string,
+              name: res.name,
+              ssoId: res.sub,
+              createdTime: Date.now(),
+              linkedProviders: ["Keycloak"],
+            });
+          }
+        } else throw new HTTPException(401, { message: "Invalid account" });
+      }
+
+      if (accountId)
         c.set("auth", {
           email: res.email as string,
           accountId,
           isAuthenticated: true,
         });
-      } catch (error) {
-        throw new HTTPException(401, { message: "Invalid account" });
-      }
+      else throw new HTTPException(401, { message: "Invalid account" });
 
       await next();
     } catch (error) {
@@ -224,6 +230,7 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
       if (error instanceof HTTPException) {
         throw error;
       }
+      console.error("Error in auth middleware:", error);
       throw new HTTPException(401, { message: "Authentication failed" });
     }
   };

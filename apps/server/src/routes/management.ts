@@ -664,7 +664,7 @@ router.openapi(routes.account.get, async (c) => {
   const storage = getStorageProvider(c);
   const accountId = c.var.auth.accountId;
 
-  const account = await storage.getAccountByEmail(accountId);
+  const account = await storage.getAccount(accountId);
   return c.json({
     account,
   });

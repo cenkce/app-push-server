@@ -4,7 +4,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { corsMiddleware } from "./middleware/cors";
 import { logging } from "./middleware/logging";
 import { acquisitionRouter } from "./routes/acquisition";
-import { authRouter } from "./routes/auth";
+import { authenticatedRoute, authRouter } from "./routes/auth";
 import { managementRouter } from "./routes/management";
 import { errorHandler, handle404 } from "./storage/error";
 import type { Env } from "./types/env";
@@ -19,6 +19,7 @@ app.use("*", secureHeaders());
 app.use("*", (c, next) => corsMiddleware(c)(c, next));
 
 // Mount routers
+app.route("/", authenticatedRoute);
 app.route("/auth", authRouter);
 app.route("/acquisition", acquisitionRouter);
 app.route("/management", managementRouter);

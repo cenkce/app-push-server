@@ -1,18 +1,43 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
-import { setCookie } from "hono/cookie";
 import { z } from "zod";
-import { authMiddleware, getGitHubAccessToken } from "../middleware/auth";
-import { getStorageProvider } from "../storage/factory";
+import { authMiddleware } from "../middleware/auth";
 import type { Env } from "../types/env";
-import { sign } from "../domain/jwt";
-import { generateKey } from "../utils/security";
 
-const router = new OpenAPIHono<Env>();
-router.use("/*", authMiddleware());
+export const authRouter = new OpenAPIHono<Env>();
+authRouter.use("/*", authMiddleware());
 
 const LoginErrorResponse = z.object({
   error: z.string(),
   error_description: z.string().optional(),
+});
+
+export const authenticatedRoute = new OpenAPIHono<Env>();
+
+authenticatedRoute.openapi(
+  createRoute({
+    method: "get",
+    path: "/authenticated",
+    responses: {
+      201: {
+        description: "Ok",
+      },
+    },
+  }),
+  async (c) => {
+    return c.json({
+      status: 201,
+    });
+  }
+);
+
+createRoute({
+  method: "get",
+  path: "/authenticated",
+  responses: {
+    201: {
+      description: "Ok",
+    },
+  },
 });
 
 const routes = {
@@ -25,7 +50,6 @@ const routes = {
       },
     },
   }),
-
   callback: createRoute({
     method: "get",
     path: "/github/callback",
@@ -62,7 +86,7 @@ const routes = {
 };
 
 // OAuth login
-router.openapi(routes.login, async (c) => {
+authRouter.openapi(routes.login, async (c) => {
   // const params = new URLSearchParams({
   //   client_id: c.env.GITHUB_CLIENT_ID,
   //   redirect_uri: `${c.env.SERVER_URL}/auth/github/callback?redirect_to=${c.req.query(
@@ -188,5 +212,3 @@ router.openapi(routes.login, async (c) => {
 //   const redirectTo = c.req.query("redirect_to") || "/login";
 //   return c.redirect(redirectTo);
 // });
-
-export { router as authRouter };

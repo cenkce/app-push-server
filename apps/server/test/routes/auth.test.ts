@@ -6,8 +6,6 @@ import {
   createTestAuth,
 } from "../utils/auth";
 import { cleanupDatabase, getTestDb } from "../utils/db";
-import { eq } from "drizzle-orm";
-import * as schema from "../../src/db/schema";
 
 describe("Auth Routes", () => {
   let auth: TestAuth;
