@@ -8,7 +8,7 @@ import {
   type Account,
 } from "../../src/types/schemas";
 import { sign } from "../../src/domain/jwt";
-import { generateKey } from "../../src/utils/security";
+import { generateKey, generateRandomKey } from "../../src/utils/security";
 
 export interface TestUser {
   email: string;
@@ -19,16 +19,14 @@ export class TestAuth {
   private db: DrizzleD1Database;
   private account: Account | undefined;
   private accessKey: AccessKey | undefined;
-  private jwtSecret: string;
 
-  constructor(d1: D1Database, jwtSecret: string) {
+  constructor(d1: D1Database) {
     this.db = drizzle(d1);
-    this.jwtSecret = jwtSecret;
   }
 
   async createTestAccount(user: TestUser) {
     // Create test account
-    const accountId = generateKey();
+    const accountId = generateRandomKey();
     const now = Date.now();
 
     const newAccount = {
@@ -36,12 +34,17 @@ export class TestAuth {
       email: user.email,
       name: user.name,
       createdTime: now,
-    } satisfies typeof account.$inferInsert;
-    await this.db.insert(account).values(newAccount);
+      ssoId: generateRandomKey(),
+      linkedProviders: "keycloak"
+    };
+    await this.db.insert(account).values({
+      ...newAccount,
+      // linkedProviders: newAccount.linkedProviders,
+    });
 
     // Create access key
-    const keyName = generateKey();
-    const keyId = generateKey();
+    const keyName = generateRandomKey();
+    const keyId = generateRandomKey();
 
     const newAccessKey = {
       id: keyId,
@@ -56,7 +59,10 @@ export class TestAuth {
     await this.db.insert(accessKey).values(newAccessKey);
 
     return {
-      account: newAccount,
+      account: {
+        ...newAccount,
+        linkedProviders: newAccount.linkedProviders.split(","),
+      },
       accessKey: newAccessKey,
     } as const;
   }
@@ -74,8 +80,8 @@ export class TestAuth {
       throw new Error("Test account not setup - call setupTestAccount first");
     }
 
-    const keyName = generateKey();
-    const keyId = generateKey();
+    const keyName = generateRandomKey();
+    const keyId = generateRandomKey();
 
     const now = Date.now();
     const newAccessKey = {
@@ -88,6 +94,7 @@ export class TestAuth {
       isSession: true,
       accountId: this.account.id,
     } satisfies typeof accessKey.$inferInsert;
+
     await this.db.insert(accessKey).values(newAccessKey);
 
     return newAccessKey;
@@ -98,20 +105,21 @@ export class TestAuth {
       throw new Error("Test account not setup - call setupTestAccount first");
     }
 
-    if (useJwt) {
-      const token = await sign(
-        {
-          sub: this.account.id,
-          email: this.account.email,
-        },
-        this.jwtSecret,
-      );
+    // if (useJwt) {
+    //   const token = await sign(
+    //     {
+    //       sub: this.account.id,
+    //       email: this.account.email,
+    //     },
+    //     this.jwtSecret,
+    //   );
 
-      return {
-        Cookie: `session=${token}`,
-        "Content-Type": "application/json",
-      };
-    }
+    //   return {
+    //     // Cookie: `session=${token}`,
+    //     "Content-Type": "application/json",
+    //     Authorization: `Bearer ${this.accessKey}`,
+    //   };
+    // }
 
     return {
       Authorization: `Bearer ${this.accessKey.name}`,
@@ -157,8 +165,8 @@ export class TestAuth {
 }
 
 // Helper to create test auth instance
-export function createTestAuth(d1: D1Database, jwtSecret: string): TestAuth {
-  return new TestAuth(d1, jwtSecret);
+export function createTestAuth(d1: D1Database): TestAuth {
+  return new TestAuth(d1);
 }
 
 // Default test user

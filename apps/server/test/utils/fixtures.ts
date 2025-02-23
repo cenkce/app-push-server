@@ -8,25 +8,26 @@ import type {
   Deployment,
   Package,
 } from "../../src/types/schemas";
-import { generateDeploymentKey, generateKey } from "../../src/utils/security";
+import { generateDeploymentKey, generateKey, generateRandomKey } from "../../src/utils/security";
+import { createId } from "@paralleldrive/cuid2";
 
-export function createTestAccount(): Account {
+export function createTestAccount() {
   return {
-    id: generateKey(),
-    email: `test-${generateKey()}@example.com`,
+    id: generateRandomKey(),
+    email: `test-${generateRandomKey().toLowerCase()}@example.com`,
     name: "Test User",
-    linkedProviders: ["GitHub"],
-    gitHubId: generateKey(),
+    linkedProviders: "keycloak",
+    ssoId: generateRandomKey(),
     createdTime: Date.now(),
   };
 }
 
 export function createTestAccessKey(
-  accountId: string = generateKey(),
+  accountId: string = generateRandomKey(),
 ): Omit<AccessKey, "id"> {
   return {
-    name: generateKey(),
-    friendlyName: `Test Key ${generateKey()}`,
+    name: generateRandomKey(),
+    friendlyName: `Test Key ${generateRandomKey()}`,
     createdBy: "Test",
     createdTime: Date.now(),
     description: "Test access key",
@@ -35,14 +36,14 @@ export function createTestAccessKey(
   };
 }
 
-export function createTestApp(overrides: Partial<App> = {}): App {
+export function createTestApp(overrides: Partial<App> = {}) {
   return {
-    id: generateKey(),
-    name: `test-app-${generateKey()}`,
+    name: `test-app-${generateRandomKey()}`,
     collaborators: {},
     deployments: [],
     createdTime: Date.now(),
     ...overrides,
+    id: overrides.id || createId(),
   };
 }
 
@@ -51,7 +52,7 @@ export function createTestCollaborator(
   permission: "Owner" | "Collaborator" = "Collaborator",
 ): typeof schema.collaborator.$inferInsert {
   return {
-    appId: generateKey(),
+    appId: generateRandomKey(),
     accountId,
     permission,
   };
@@ -59,12 +60,12 @@ export function createTestCollaborator(
 
 export function createTestDeployment(
   appId: string,
-): typeof schema.deployment.$inferInsert {
+) {
   return {
-    id: generateKey(),
+    id: generateRandomKey(),
     appId,
-    name: `test-deployment-${generateKey()}`,
-    key: generateDeploymentKey(),
+    name: `test-deployment-${generateRandomKey()}`,
+    key: generateDeploymentKey(''),
     createdTime: Date.now(),
   };
 }
@@ -74,15 +75,15 @@ export function createTestPackage(
   overrides: Partial<typeof schema.packages.$inferInsert> = {},
 ): typeof schema.packages.$inferInsert {
   return {
-    id: generateKey(),
+    id: generateRandomKey(),
     appVersion: "1.0.0",
-    blobPath: `${generateKey()}.zip`,
+    blobPath: `${generateRandomKey()}.zip`,
     description: "Test package",
     isDisabled: false,
     isMandatory: false,
     label: "v1",
-    manifestBlobPath: `${generateKey()}-manifest.json`,
-    packageHash: generateKey(),
+    manifestBlobPath: `${generateRandomKey()}-manifest.json`,
+    packageHash: generateRandomKey(),
     size: 1024,
     uploadTime: Date.now(),
     deploymentId,

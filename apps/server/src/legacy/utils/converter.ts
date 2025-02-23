@@ -16,10 +16,12 @@ import {
   Package,
 } from "../types/rest-definitions";
 
-import Storage = require("../storage/storage");
-import * as redis from "../redis-manager";
+// import Storage = require("../storage/storage");
+// import * as redis from "../redis-manager";
 
-export function accessKeyRequestFromBody(body: AccessKeyRequest): AccessKeyRequest {
+export function accessKeyRequestFromBody(
+  body: AccessKeyRequest
+): AccessKeyRequest {
   const accessKeyRequest: AccessKeyRequest = <AccessKeyRequest>{};
   if (body.createdBy !== undefined) {
     accessKeyRequest.createdBy = body.createdBy;
@@ -35,8 +37,10 @@ export function accessKeyRequestFromBody(body: AccessKeyRequest): AccessKeyReque
   }
 
   // This caters to legacy CLIs, before "description" was renamed to "friendlyName".
-  accessKeyRequest.friendlyName = body.friendlyName === undefined ? body.description : body.friendlyName;
-  accessKeyRequest.friendlyName = accessKeyRequest.friendlyName && accessKeyRequest.friendlyName.trim();
+  accessKeyRequest.friendlyName =
+    body.friendlyName === undefined ? body.description : body.friendlyName;
+  accessKeyRequest.friendlyName =
+    accessKeyRequest.friendlyName && accessKeyRequest.friendlyName.trim();
   accessKeyRequest.description = accessKeyRequest.friendlyName;
 
   return accessKeyRequest;
@@ -59,11 +63,14 @@ export function appFromBody(body: App): App {
   return app;
 }
 
-export function appCreationRequestFromBody(body: AppCreationRequest): AppCreationRequest {
+export function appCreationRequestFromBody(
+  body: AppCreationRequest
+): AppCreationRequest {
   const appCreationRequest: AppCreationRequest = <AppCreationRequest>{};
 
   appCreationRequest.name = body.name;
-  appCreationRequest.manuallyProvisionDeployments = body.manuallyProvisionDeployments;
+  appCreationRequest.manuallyProvisionDeployments =
+    body.manuallyProvisionDeployments;
 
   return appCreationRequest;
 }
@@ -77,16 +84,17 @@ export function deploymentFromBody(body: Deployment): Deployment {
   return deployment;
 }
 
-export function toRestAccount(storageAccount: Storage.Account): Account {
+export function toRestAccount(storageAccount: Account): Account {
   const restAccount: Account = {
     name: storageAccount.name,
     email: storageAccount.email,
+    ssoId: storageAccount.ssoId,
     linkedProviders: [],
   };
 
-  if (storageAccount.azureAdId) restAccount.linkedProviders.push("AAD");
-  if (storageAccount.gitHubId) restAccount.linkedProviders.push("GitHub");
-  if (storageAccount.microsoftId) restAccount.linkedProviders.push("Microsoft");
+  // if (storageAccount.azureAdId) restAccount.linkedProviders.push("AAD");
+  if (storageAccount.ssoId) restAccount.linkedProviders.push("Keycloak");
+  // if (storageAccount.microsoftId) restAccount.linkedProviders.push("Microsoft");
 
   return restAccount;
 }
@@ -107,7 +115,10 @@ export function sortAndUpdateDisplayNameOfRestAppsList(apps: App[]): App[] {
       const storageApp = toStorageApp(app, 0);
 
       let name: string = app.name;
-      if (nameToCountMap[app.name] > 1 && !Storage.isOwnedByCurrentUser(storageApp)) {
+      if (
+        nameToCountMap[app.name] > 1 &&
+        !Storage.isOwnedByCurrentUser(storageApp)
+      ) {
         const ownerEmail: string = Storage.getOwnerEmail(storageApp);
         name = `${ownerEmail}:${app.name}`;
       }
@@ -116,8 +127,12 @@ export function sortAndUpdateDisplayNameOfRestAppsList(apps: App[]): App[] {
     });
 }
 
-export function toRestApp(storageApp: Storage.App, displayName: string, deploymentNames: string[]): App {
-  const sortedDeploymentNames: string[] = deploymentNames
+export function toRestApp(
+  storageApp: Storage.App,
+  displayName: string,
+  deploymentNames: string[] = []
+): App {
+  const sortedDeploymentNames = deploymentNames
     ? deploymentNames.sort((first: string, second: string) => {
         return first.localeCompare(second);
       })
@@ -130,7 +145,9 @@ export function toRestApp(storageApp: Storage.App, displayName: string, deployme
   };
 }
 
-export function toRestCollaboratorMap(storageCollaboratorMap: Storage.CollaboratorMap): CollaboratorMap {
+export function toRestCollaboratorMap(
+  storageCollaboratorMap: Storage.CollaboratorMap
+): CollaboratorMap {
   const collaboratorMap: CollaboratorMap = {};
 
   Object.keys(storageCollaboratorMap)
@@ -145,7 +162,9 @@ export function toRestCollaboratorMap(storageCollaboratorMap: Storage.Collaborat
   return collaboratorMap;
 }
 
-export function toRestDeployment(storageDeployment: Storage.Deployment): Deployment {
+export function toRestDeployment(
+  storageDeployment: Storage.Deployment
+): Deployment {
   const restDeployment = <Deployment>{
     name: storageDeployment.name,
     key: storageDeployment.key,
@@ -159,7 +178,9 @@ export function toRestDeployment(storageDeployment: Storage.Deployment): Deploym
   return restDeployment;
 }
 
-export function toRestDeploymentMetrics(metricsFromRedis: any): DeploymentMetrics {
+export function toRestDeploymentMetrics(
+  metricsFromRedis: any
+): DeploymentMetrics {
   if (!metricsFromRedis) {
     return {};
   }
@@ -204,7 +225,7 @@ export function toRestDeploymentMetrics(metricsFromRedis: any): DeploymentMetric
   return restDeploymentMetrics;
 }
 
-export function toRestPackage(storagePackage: Storage.Package): Package {
+export function toRestPackage(storagePackage: Package): Package {
   const copy: Package = nodeDeepCopy.deepCopy(storagePackage);
 
   const cast: Storage.Package = <any>copy;
@@ -215,8 +236,10 @@ export function toRestPackage(storagePackage: Storage.Package): Package {
   return copy;
 }
 
-export function toStorageAccessKey(restAccessKey: AccessKey): Storage.AccessKey {
-  const storageAccessKey = <Storage.AccessKey>{
+export function toStorageAccessKey(
+  restAccessKey: AccessKey
+): AccessKey {
+  const storageAccessKey = <AccessKey>{
     name: restAccessKey.name,
     createdTime: restAccessKey.createdTime,
     createdBy: restAccessKey.createdBy,
@@ -237,14 +260,19 @@ export function toStorageApp(restApp: App, createdTime: number): Storage.App {
   return storageApp;
 }
 
-export function toStorageCollaboratorMap(restCollaboratorMap: CollaboratorMap): Storage.CollaboratorMap {
+export function toStorageCollaboratorMap(
+  restCollaboratorMap?: CollaboratorMap
+): CollaboratorMap {
   if (!restCollaboratorMap) return null;
 
-  return <Storage.CollaboratorMap>nodeDeepCopy.deepCopy(restCollaboratorMap);
+  return <CollaboratorMap>nodeDeepCopy.deepCopy(restCollaboratorMap);
 }
 
-export function toStorageDeployment(restDeployment: Deployment, createdTime: number): Storage.Deployment {
-  const storageDeployment = <Storage.Deployment>{
+export function toStorageDeployment(
+  restDeployment: Deployment,
+  createdTime: number
+): Deployment {
+  const storageDeployment = <Deployment>{
     createdTime: createdTime,
     name: restDeployment.name,
     key: restDeployment.key,

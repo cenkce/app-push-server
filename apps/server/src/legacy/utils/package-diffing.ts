@@ -257,7 +257,7 @@ export class PackageDiffer {
       })
       .then((diffArchiveFilePath?: string): Promise<storageTypes.BlobInfo> => {
         if (diffArchiveFilePath) {
-          return this.uploadDiffArchiveBlob(security.generateSecureKey(accountId), diffArchiveFilePath);
+          return this.uploadDiffArchiveBlob(security.generateSecureKeyWithAccountId(accountId), diffArchiveFilePath);
         }
 
         return q(<storageTypes.BlobInfo>null);

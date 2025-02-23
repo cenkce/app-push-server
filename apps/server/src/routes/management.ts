@@ -24,9 +24,10 @@ import {
   generateAccessKey,
   generateDeploymentKey,
   generateKey,
+  generateRandomKey,
 } from "../utils/security";
 import { urlEncode } from "../utils/urlencode";
-import { generateSecureKey } from "../legacy/utils/security";
+import { generateSecureKeyWithAccountId } from "../legacy/utils/security";
 
 const router = new OpenAPIHono<Env>();
 
@@ -697,7 +698,7 @@ router.openapi(routes.accessKeys.create, async (c) => {
   const accountId = c.var.auth.accountId;
   const body = c.req.valid("json");
 
-  const keyName = generateSecureKey(accountId);
+  const keyName = generateAccessKey(accountId);
   const accessKey: Omit<AccessKey, "id"> = {
     name: keyName,
     friendlyName: body.friendlyName,
@@ -861,7 +862,7 @@ router.openapi(routes.apps.create, async (c) => {
       defaultDeployments.map((name) =>
         storage.addDeployment(accountId, app.id, {
           name,
-          key: generateDeploymentKey(),
+          key: generateDeploymentKey(accountId),
           createdTime: Date.now(),
         }),
       ),
@@ -1001,7 +1002,7 @@ router.openapi(routes.deployments.create, async (c) => {
     });
   }
 
-  const deploymentKey = body.key || generateDeploymentKey();
+  const deploymentKey = body.key || generateDeploymentKey(accountId);
   const deploymentId = await storage.addDeployment(accountId, app.id, {
     name: body.name,
     key: deploymentKey,
@@ -1178,14 +1179,14 @@ router.openapi(routes.deployments.release, async (c) => {
   }
 
   // Store package blob
-  const blobId = generateKey();
+  const blobId = generateRandomKey();
   await storage.addBlob(blobId, packageData, packageData.byteLength);
   const blobUrl = await storage.getBlobUrl(blobId);
 
   // Store manifest if available
   let manifestUrl = "";
   if (manifestResult) {
-    const manifestBlobId = generateKey();
+    const manifestBlobId = generateRandomKey();
     const manifestJson = manifestResult.serialize();
     const manifestBuffer = new TextEncoder().encode(manifestJson);
     await storage.addBlob(
@@ -1460,6 +1461,7 @@ router.openapi(routes.collaborators.remove, async (c) => {
   const collaborators = await storage.getCollaborators(accountId, app.id);
   const collaborator = collaborators[email];
 
+
   if (!collaborator) {
     throw new HTTPException(404, {
       message: "The specified account is not a collaborator for this app",
@@ -1484,6 +1486,7 @@ router.openapi(routes.collaborators.remove, async (c) => {
   }
 
   await storage.removeCollaborator(accountId, app.id, email);
+
   return new Response(null, { status: 204 });
 });
 

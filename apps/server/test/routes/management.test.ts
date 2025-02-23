@@ -5,12 +5,13 @@ import { z } from "zod";
 import * as schema from "../../src/db/schema";
 import {
   AccessKeySchema,
+  App,
   AppSchema,
   CollaboratorSchema,
   DeploymentSchema,
   MetricsSchema,
 } from "../../src/types/schemas";
-import { generateKey } from "../../src/utils/security";
+import { generateRandomKey as generateKey } from "../../src/utils/security";
 import { urlEncode } from "../../src/utils/urlencode";
 import {
   DEFAULT_TEST_USER,
@@ -33,7 +34,7 @@ describe("Management Routes", () => {
 
   beforeEach(async () => {
     await cleanupDatabase();
-    auth = createTestAuth(env.DB, env.JWT_SECRET);
+    auth = createTestAuth(env.DB);
     await auth.setupTestAccount(DEFAULT_TEST_USER);
   });
 
@@ -140,6 +141,40 @@ describe("Management Routes", () => {
         expect(validated.accessKey.expires).toBeLessThanOrEqual(
           Date.now() + ttl + 1000,
         );
+      });
+
+      it("gets an error if the accesskey is expired", async () => {
+        const headers = await auth.getAuthHeaders();
+        const ttl = -3_600_000; // 1 hour
+
+        const returning = await db.insert(schema.accessKey).values({
+          name: generateKey(),
+          friendlyName: "Test Key",
+          createdBy: "Test",
+          createdTime: Date.now(),
+          expires: Date.now() + ttl,
+          isSession: false,
+          accountId: auth.getCurrentAccountId(),
+        }).returning();
+
+        const key = returning[0].name;
+
+        const response = await SELF.fetch(
+          "https://example.com/auth/login",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${key}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        const message = await response.json();
+        console.log( 'message ', message)
+
+        expect(message).toEqual({ error: 'Access key expired' });
+        expect(response.status).toBe(401);
       });
 
       it("validates friendlyName", async () => {
@@ -963,7 +998,7 @@ describe("Management Routes", () => {
   });
 
   describe("Deployments", () => {
-    let app: typeof schema.app.$inferInsert;
+    let app: App;
 
     beforeEach(async () => {
       // Create test app
@@ -1370,7 +1405,7 @@ describe("Management Routes", () => {
   });
 
   describe("Collaborators", () => {
-    let app: typeof schema.app.$inferInsert;
+    let app: App;
 
     beforeEach(async () => {
       app = createTestApp();
@@ -1526,11 +1561,16 @@ describe("Management Routes", () => {
 
         const collaboratorAccount = createTestAccount();
         await db.insert(schema.account).values(collaboratorAccount);
+        const accounts = await db.query.account.findMany();
+
+        const collaboratoronDB = accounts.find((a) => a.email === collaboratorAccount.email);
+        expect(collaboratoronDB).toBeDefined();
         await db.insert(schema.collaborator).values({
           appId: app.id,
           accountId: collaboratorAccount.id,
           permission: "Collaborator",
         });
+
 
         const response = await SELF.fetch(
           `https://example.com/management/apps/${app.name}/collaborators/${collaboratorAccount.email}`,
@@ -1632,7 +1672,7 @@ describe("Management Routes", () => {
   });
 
   describe("Metrics", () => {
-    let app: typeof schema.app.$inferInsert;
+    let app: App;
     let deployment: typeof schema.deployment.$inferInsert;
 
     beforeEach(async () => {

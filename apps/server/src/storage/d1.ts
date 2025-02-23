@@ -18,6 +18,7 @@ import type {
 import { generateKey } from "../utils/security";
 import { BlobStorageProvider } from "./blob";
 import { type StorageProvider, createStorageError } from "./storage";
+import { createId } from "@paralleldrive/cuid2";
 
 export class D1StorageProvider implements StorageProvider {
   private readonly db: DrizzleD1Database<typeof schema>;
@@ -59,7 +60,7 @@ export class D1StorageProvider implements StorageProvider {
 
   // Account operations
   async addAccount(account: Omit<Account, "id">): Promise<string> {
-    const id = generateKey();
+    // const id = generateKey();
 
     // Check if email exists
     const existing = await this.db.query.account.findFirst({
@@ -74,16 +75,15 @@ export class D1StorageProvider implements StorageProvider {
     }
 
     // Create account
-    await this.db.insert(schema.account).values({
-      id,
+    const returning = await this.db.insert(schema.account).values({
       email: account.email.toLowerCase(),
       name: account.name,
       ssoId: account.ssoId,
       createdTime: account.createdTime,
       linkedProviders: account.linkedProviders.join(","),
-    });
+    }).returning();
 
-    return id;
+    return returning[0].id;
   }
 
   async getAccount(accountId: string): Promise<Account> {
@@ -113,7 +113,7 @@ export class D1StorageProvider implements StorageProvider {
     });
 
     if (!account) {
-      throw createStorageError(ErrorCode.NotFound, "Account not found");
+      throw createStorageError(ErrorCode.NotFound, `Account not found for email ${email}`);
     }
 
     return {
@@ -172,7 +172,7 @@ export class D1StorageProvider implements StorageProvider {
     accountId: string,
     app: Omit<App, "id" | "collaborators">,
   ): Promise<App> {
-    const id = generateKey();
+    const id = createId();
 
     // Verify account exists
     const account = await this.getAccount(accountId);
@@ -477,6 +477,7 @@ export class D1StorageProvider implements StorageProvider {
     email: string,
   ): Promise<void> {
     const app = await this.getApp(accountId, { appId });
+
     const collaborator = await this.getAccountByEmail(email);
 
     // Verify ownership or self-removal
@@ -509,7 +510,7 @@ export class D1StorageProvider implements StorageProvider {
     deployment: Omit<Deployment, "id" | "package">,
   ): Promise<string> {
     await this.getApp(accountId, { appId });
-    const id = generateKey();
+    // const id = generateKey();
 
     // Check for duplicate deployment name
     const existingDeployment = await this.db.query.deployment.findFirst({
@@ -526,15 +527,14 @@ export class D1StorageProvider implements StorageProvider {
       );
     }
 
-    await this.db.insert(schema.deployment).values({
-      id,
+    const returning = await this.db.insert(schema.deployment).values({
       appId,
       name: deployment.name,
       key: deployment.key as string,
       createdTime: deployment.createdTime,
-    });
+    }).returning();
 
-    return id;
+    return returning[0].id;
   }
 
   async getDeployment(
@@ -716,7 +716,7 @@ export class D1StorageProvider implements StorageProvider {
     });
 
     const label = `v${packagesCount.length + 1}`;
-    const id = generateKey();
+    const id = createId();
 
     // Generate blob paths
     const blobPath = this.getBlobPath(appId, deploymentId, `${id}.zip`);
@@ -825,7 +825,7 @@ export class D1StorageProvider implements StorageProvider {
 
     // Insert new history
     for (const [index, pkg] of history.entries()) {
-      const id = generateKey();
+      const id = createId();
       const blobPath = this.getBlobPath(appId, deploymentId, `${id}.zip`);
       const manifestBlobPath = pkg.manifestBlobUrl
         ? this.getBlobPath(appId, deploymentId, `${id}-manifest.json`)
@@ -896,7 +896,7 @@ export class D1StorageProvider implements StorageProvider {
     accountId: string,
     accessKey: Omit<AccessKey, "id">,
   ): Promise<string> {
-    const id = generateKey();
+    const id = createId();
 
     await this.db.insert(schema.accessKey).values({
       id,

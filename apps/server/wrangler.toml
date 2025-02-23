@@ -20,7 +20,12 @@ preview_bucket_name = "code-push-storage-dev"
 
 [env.preview]
 d1_databases = [
-  { binding = "DB", database_name = "code-push-preview", database_id = "<id>", migrations_dir = "drizzle/migrations" },
+  { binding = "DB", database_name = "code-push-preview", database_id = "bc787494-06b2-4cef-8621-b295f2d185e0", migrations_dir = "drizzle/migrations" },
+]
+
+[env.test]
+d1_databases = [
+  { binding = "DB", database_name = "code-push-preview", database_id = "bc787494-06b2-4cef-8621-b295f2d185e0", migrations_dir = "drizzle/migrations" },
 ]
 
 [env.production]

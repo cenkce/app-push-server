@@ -8,7 +8,7 @@ import {
   type Deployment,
   UpdateCheckResponseSchema,
 } from "../../src/types/schemas";
-import { generateKey } from "../../src/utils/security";
+import { generateKey, generateRandomKey } from "../../src/utils/security";
 import { type TestAuth, createTestAuth } from "../utils/auth";
 import { cleanupDatabase, getTestDb } from "../utils/db";
 import {
@@ -26,11 +26,11 @@ describe("Acquisition Routes", () => {
   let app: App;
   let deployment: Deployment;
   let packages: (typeof schema.packages.$inferInsert)[];
-  let deployment2: typeof schema.deployment.$inferInsert;
+  let deployment2: Deployment;
   let packages2: (typeof schema.packages.$inferInsert)[];
 
   beforeEach(async () => {
-    auth = createTestAuth(env.DB, env.JWT_SECRET);
+    auth = createTestAuth(env.DB);
     db = getTestDb();
 
     await cleanupDatabase();
@@ -63,7 +63,7 @@ describe("Acquisition Routes", () => {
         isDisabled: false,
         isMandatory: false,
         description: "Test package for 1.0.0",
-        blobPath: generateKey("hash100-v1-"),
+        blobPath: generateKey("hash100-v1-", account.id),
       }),
       createTestPackage(deployment.id, {
         label: "v2",
@@ -71,7 +71,7 @@ describe("Acquisition Routes", () => {
         isDisabled: false,
         isMandatory: true,
         description: "Test package for 1.0.0",
-        blobPath: generateKey("hash101-v2-"),
+        blobPath: generateKey("hash101-v2-", account.id),
       }),
       createTestPackage(deployment.id, {
         label: "v3",
@@ -79,7 +79,7 @@ describe("Acquisition Routes", () => {
         isDisabled: false,
         isMandatory: false,
         description: "Test package for 1.0.0",
-        blobPath: generateKey("hash102-v3-"),
+        blobPath: generateKey("hash102-v3-", account.id),
         size: 100,
       }),
     ];
@@ -109,18 +109,18 @@ describe("Acquisition Routes", () => {
 
     // Create diffs
     await db.insert(schema.packageDiff).values({
-      id: generateKey(),
+      id: generateRandomKey(),
       size: 1,
-      packageId: packages[1].id,
+      packageId: packages[1].id!,
       sourcePackageHash: packages[0].packageHash,
-      blobPath: (await createTestBlob(generateKey("diff1-"), "test")).key,
+      blobPath: (await createTestBlob(generateKey("diff1-", ''), "test")).key,
     });
     await db.insert(schema.packageDiff).values({
-      id: generateKey(),
+      id: generateRandomKey(),
       size: 3,
-      packageId: packages[2].id,
+      packageId: packages[2].id!,
       sourcePackageHash: packages[1].packageHash,
-      blobPath: (await createTestBlob(generateKey("diff2-"), "test")).key,
+      blobPath: (await createTestBlob(generateKey("diff2-", ''), "test")).key,
     });
 
     // Create second deployment for testing app version handling
@@ -291,7 +291,7 @@ describe("Acquisition Routes", () => {
       await db
         .update(schema.packages)
         .set({ rollout: 50 })
-        .where(eq(schema.packages.id, packages[2].id));
+        .where(eq(schema.packages.id, packages[2].id!));
 
       const response = await SELF.fetch(
         `https://example.com/acquisition/updateCheck?deploymentKey=${deployment.key}&appVersion=1.0.0&clientUniqueId=test-device`,
@@ -335,7 +335,7 @@ describe("Acquisition Routes", () => {
       await db
         .update(schema.packages)
         .set({ appVersion: ">=1.0.0 <2.0.0" })
-        .where(eq(schema.packages.id, packages2[3].id));
+        .where(eq(schema.packages.id, packages2[3].id!));
 
       const response = await SELF.fetch(
         `https://example.com/acquisition/updateCheck?deploymentKey=${deployment2.key}&appVersion=1.5.0`,
@@ -589,7 +589,7 @@ describe("Acquisition Routes", () => {
       await db
         .update(schema.packages)
         .set({ rollout: 50 })
-        .where(eq(schema.packages.id, packages2[6].id));
+        .where(eq(schema.packages.id, packages2[6].id!));
 
       const response = await SELF.fetch(
         `https://example.com/acquisition/updateCheck?deploymentKey=${deployment2.key}&appVersion=3.0.0&clientUniqueId=specific-device`,
@@ -605,7 +605,7 @@ describe("Acquisition Routes", () => {
       await db
         .update(schema.packages)
         .set({ rollout: 0 })
-        .where(eq(schema.packages.id, packages2[6].id));
+        .where(eq(schema.packages.id, packages2[6].id!));
 
       const response = await SELF.fetch(
         `https://example.com/acquisition/updateCheck?deploymentKey=${deployment2.key}&appVersion=3.0.0&clientUniqueId=any-device`,

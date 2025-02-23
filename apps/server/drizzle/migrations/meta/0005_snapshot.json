@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e75a1fd7-ac18-474c-a48e-8addbe9aec45",
-  "prevId": "3876d69f-1420-46e3-9b65-b7fcf8a2ba03",
+  "id": "7dd097ea-b05d-408e-a945-eed547cd087d",
+  "prevId": "e8fff387-69e6-4382-b4c3-a65bca2d9a9a",
   "tables": {
     "access_key": {
       "name": "access_key",

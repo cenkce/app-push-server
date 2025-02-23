@@ -25,8 +25,6 @@ export const SettingsPage = () => {
   const [isCreateKeyOpen, setIsCreateKeyOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  console.log("SettingsPage.tsx: api");
-
   const { data: accountData } = useQuery({
     queryKey: ["account"],
     queryFn: async () => {

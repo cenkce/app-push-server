@@ -6,10 +6,11 @@ import {
   text,
   unique,
 } from "drizzle-orm/sqlite-core";
+import { createId } from '@paralleldrive/cuid2';
 
 // Accounts table
 export const account = sqliteTable("account", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   ssoId: text("sso_id").notNull(),
@@ -26,7 +27,7 @@ export const accountRelations = relations(account, ({ many }) => ({
 
 // Apps table
 export const app = sqliteTable("app", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   name: text("name").notNull(),
   createdTime: integer("created_time").notNull(),
   deletedAt: integer("deleted_at"),
@@ -69,7 +70,8 @@ export const collaboratorRelations = relations(collaborator, ({ one }) => ({
 
 // Deployments table
 export const deployment = sqliteTable("deployment", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  // generatedAlwaysAs(`'dk_' || random()`),
   appId: text("app_id")
     .notNull()
     .references(() => app.id),
@@ -90,7 +92,7 @@ export const deploymentRelations = relations(deployment, ({ one, many }) => ({
 
 // Packages table
 export const packages = sqliteTable("package", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   deploymentId: text("deployment_id")
     .notNull()
     .references(() => deployment.id),
@@ -127,7 +129,7 @@ export const packageRelations = relations(packages, ({ one, many }) => ({
 export const packageDiff = sqliteTable(
   "package_diff",
   {
-    id: text("id").primaryKey(),
+    id: text("id").primaryKey().$defaultFn(() => createId()),
     packageId: text("package_id")
       .notNull()
       .references(() => packages.id),
@@ -148,7 +150,7 @@ export const packageDiffRelations = relations(packageDiff, ({ one }) => ({
 
 // Access keys table
 export const accessKey = sqliteTable("access_key", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   accountId: text("account_id")
     .notNull()
     .references(() => account.id),

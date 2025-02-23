@@ -4,6 +4,7 @@ import type { Env } from "../types/env";
 import { Jwt } from "hono/utils/jwt";
 import { getStorageProvider } from "../storage/factory";
 import { Account } from "../types/schemas";
+import { ErrorCode } from "../types/error";
 
 export type KeycloakParsedToken = {
   exp: number;
@@ -40,8 +41,6 @@ async function validateToken({
       return false;
     }
     const decodedToken = Jwt.decode(token);
-
-    console.log("decodedToken", decodedToken);
 
     const signingKey = publicKeyResponse.keys.find(
       (key: any) => key.use === "sig" && key.alg === "RS256"
@@ -161,15 +160,18 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
         throw new HTTPException(401, { message: "No authentication token" });
       }
 
-      console.log("publicKeyResponse", publicKeyResponse);
       // check for access token
       try {
         accountId = await storage.getAccountIdFromAccessKey(token);
         if (accountId) account = await storage.getAccount(accountId as string);
-      } catch {
-        console.warn("Access key not found");
+      } catch (e) {
+        if(e instanceof Error && 'code' in e &&  e.code === ErrorCode.Expired){
+          throw new HTTPException(401, { message: "Access key expired" });
+        } else if(e instanceof Error)
+          console.warn(e.message, token);
+        else
+          console.warn("Access key not found");
       }
-
       // if there is a valid access key, set auth context and continue
       if (account) {
         c.set("auth", {
@@ -192,9 +194,10 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
       if (!res) {
         throw new HTTPException(401, { message: "Invalid access token" });
       }
+
       account = await storage.getAccountByEmail(res.email);
       accountId = account?.id;
-      
+
       try {
         if (!account) {
           // Create new account if token is valid but account is not found

@@ -1,14 +1,11 @@
-export function generateKey(prefix = ""): string {
-  const array = new Uint8Array(16);
-  crypto.getRandomValues(array);
-  const key = Array.from(array, (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
-  return prefix + key;
+import { generateSecureKey, generateSecureKeyWithAccountId } from "../legacy/utils/security";
+
+export function generateKey(prefix: string, accountId: string = ''): string {
+  return prefix + generateSecureKeyWithAccountId(accountId);
 }
 
-export function generateSecureId(): string {
-  return generateKey();
+export function generateRandomKey(): string {
+  return generateSecureKey();
 }
 
 export async function hashString(input: string): Promise<string> {
@@ -36,12 +33,12 @@ export function maskAccessKey(key: string): string {
 export const ACCESS_KEY_PREFIX = "ck_";
 export const DEPLOYMENT_KEY_PREFIX = "dk_";
 
-export function generateAccessKey(): string {
-  return generateKey(ACCESS_KEY_PREFIX);
+export function generateAccessKey(accountId: string): string {
+  return generateKey(ACCESS_KEY_PREFIX, accountId);
 }
 
-export function generateDeploymentKey(): string {
-  return generateKey(DEPLOYMENT_KEY_PREFIX);
+export function generateDeploymentKey(accountId: string): string {
+  return generateKey(DEPLOYMENT_KEY_PREFIX, accountId);
 }
 
 export interface KeyPair {
@@ -69,10 +66,6 @@ export function isSecurePassword(password: string): boolean {
     hasNumbers &&
     hasSpecialChars
   );
-}
-
-export function generateSessionId(): string {
-  return `session_${generateKey()}`;
 }
 
 // Content security helpers

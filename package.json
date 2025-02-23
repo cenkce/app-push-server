@@ -1,5 +1,5 @@
 {
-  "name": "@ssut/code-push-cloudflare-workers",
+  "name": "app-push-server-parent",
   "version": "0.1.0",
   "private": true,
   "main": "dist/Api.js",

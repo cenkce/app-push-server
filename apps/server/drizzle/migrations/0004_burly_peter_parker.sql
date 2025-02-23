@@ -1,1 +1,0 @@
-ALTER TABLE `account` RENAME COLUMN "github_id" TO "sso_id";

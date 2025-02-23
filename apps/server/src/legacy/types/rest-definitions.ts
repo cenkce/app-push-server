@@ -92,6 +92,7 @@ export interface UpdateMetrics {
 /*out*/
 export interface Account {
   /*key*/ email: string;
+  ssoId: string;
   name: string;
   linkedProviders: string[];
 }
