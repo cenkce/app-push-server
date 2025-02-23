@@ -3,7 +3,24 @@ import { HTTPException } from "hono/http-exception";
 import type { Env } from "../types/env";
 import { Jwt } from "hono/utils/jwt";
 import { getStorageProvider } from "../storage/factory";
+import { Account } from "../types/schemas";
 
+export type KeycloakParsedToken = {
+  exp: number;
+  iat: number;
+  auth_time: number;
+  iss: "http://localhost:8080/realms/code-push";
+  sub: "249b0b8a-a5fb-4b1a-ba6e-e32037ecd17f";
+  realm_access: { roles: string[] };
+  resource_access: { account: Record<string, any> };
+  // scope: "openid profile email";
+  email_verified: true;
+  name: string;
+  preferred_username: string;
+  given_name: string;
+  family_name: string;
+  email: string;
+};
 async function validateToken({
   token,
   keycloakUrl,
@@ -52,7 +69,7 @@ async function validateToken({
     }
 
     Jwt.verify(token, pem, "RS256");
-    return decodedToken;
+    return decodedToken.payload as KeycloakParsedToken;
   } catch (error) {
     console.error("Error validating token:", error);
     return false; // Error in validating token
@@ -119,15 +136,17 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
     const keycloakUrl = c.env.KEYCLOAK_URL;
     const realm = c.env.KEYCLOAK_REALM;
     const clientId = c.env.KEYCLOAK_CLIENT_ID;
+    const storage = getStorageProvider(c);
 
     if (!publicKeyResponse)
       publicKeyResponse = await fetch(
         `${keycloakUrl}/realms/${realm}/protocol/openid-connect/certs`
       ).then((res) => res.json());
 
-    console.log("publicKeyResponse", publicKeyResponse);
-
     try {
+      let accountId: string | undefined;
+      let account: Account | undefined;
+
       let token: string | undefined;
 
       const authHeader = c.req.header("Authorization");
@@ -142,6 +161,26 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
         throw new HTTPException(401, { message: "No authentication token" });
       }
 
+      console.log("publicKeyResponse", publicKeyResponse);
+      // check for access token
+      try {
+        accountId = await storage.getAccountIdFromAccessKey(token);
+        if (accountId) account = await storage.getAccount(accountId as string);
+      } catch {
+        console.warn("Access key not found");
+      }
+
+      // if there is a valid access key, set auth context and continue
+      if (account) {
+        c.set("auth", {
+          email: account.email,
+          accountId: account.id,
+          isAuthenticated: true,
+        });
+        await next();
+        return;
+      }
+
       const res = await validateToken({
         publicKeyResponse,
         token,
@@ -153,37 +192,28 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
       if (!res) {
         throw new HTTPException(401, { message: "Invalid access token" });
       }
-
-      const storage = getStorageProvider(c);
-      const account = await storage.getAccountByEmail(
-        res.payload.email as string
-      );
-
-      c.set("auth", {
-        email: res.payload.email as string,
-        accountId: account.id,
-        isAuthenticated: true,
-      });
-
-      // try {
-      //   // Try JWT first
-      //   const payload = await verify(token, c.env.JWT_SECRET);
-      //   c.set("auth", {
-      //     accountId: payload.sub,
-      //     isAuthenticated: true,
-      //   });
-      // } catch {
-      //   // Try access key if JWT fails
-      //   try {
-      //     const accountId = await storage.getAccountIdFromAccessKey(token);
-      //     c.set("auth", {
-      //       accountId,
-      //       isAuthenticated: true,
-      //     });
-      //   } catch {
-      //     throw new HTTPException(401, { message: "Invalid access token" });
-      //   }
-      // }
+      account = await storage.getAccountByEmail(res.email);
+      accountId = account?.id;
+      
+      try {
+        if (!account) {
+          // Create new account if token is valid but account is not found
+          accountId = await storage.addAccount({
+            email: res.email as string,
+            name: res.name,
+            ssoId: res.sub,
+            createdTime: Date.now(),
+            linkedProviders: ["Keycloak"],
+          });
+        }
+        c.set("auth", {
+          email: res.email as string,
+          accountId,
+          isAuthenticated: true,
+        });
+      } catch (error) {
+        throw new HTTPException(401, { message: "Invalid account" });
+      }
 
       await next();
     } catch (error) {

@@ -78,8 +78,9 @@ export class D1StorageProvider implements StorageProvider {
       id,
       email: account.email.toLowerCase(),
       name: account.name,
-      githubId: account.gitHubId,
+      ssoId: account.ssoId,
       createdTime: account.createdTime,
+      linkedProviders: account.linkedProviders.join(","),
     });
 
     return id;
@@ -98,12 +99,8 @@ export class D1StorageProvider implements StorageProvider {
     }
 
     return {
-      id: account.id,
-      email: account.email,
-      name: account.name,
-      gitHubId: account.githubId ?? undefined,
-      createdTime: account.createdTime,
-      linkedProviders: account.githubId ? ["GitHub"] : [],
+      ...account,
+      linkedProviders: account.linkedProviders.split(","),
     };
   }
 
@@ -123,9 +120,9 @@ export class D1StorageProvider implements StorageProvider {
       id: account.id,
       email: account.email,
       name: account.name,
-      gitHubId: account.githubId ?? undefined,
+      ssoId: account.ssoId,
       createdTime: account.createdTime,
-      linkedProviders: account.githubId ? ["GitHub"] : [],
+      linkedProviders: account.linkedProviders.split(","),
     };
   }
 
@@ -144,7 +141,7 @@ export class D1StorageProvider implements StorageProvider {
     await this.db
       .update(schema.account)
       .set({
-        githubId: updates.gitHubId,
+        // ssoId: updates.ssoId,
         name: updates.name,
       })
       .where(eq(schema.account.id, account.id));

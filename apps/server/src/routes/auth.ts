@@ -174,18 +174,18 @@ router.openapi(routes.callback, async (c) => {
 });
 
 // Logout
-router.openapi(routes.logout, async (c) => {
-  // Clear session cookie
-  setCookie(c, "session", "", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "Lax",
-    path: "/",
-    maxAge: 0,
-  });
+// router.openapi(routes.logout, async (c) => {
+//   // Clear session cookie
+//   setCookie(c, "session", "", {
+//     httpOnly: true,
+//     secure: true,
+//     sameSite: "Lax",
+//     path: "/",
+//     maxAge: 0,
+//   });
 
-  const redirectTo = c.req.query("redirect_to") || "/login";
-  return c.redirect(redirectTo);
-});
+//   const redirectTo = c.req.query("redirect_to") || "/login";
+//   return c.redirect(redirectTo);
+// });
 
 export { router as authRouter };

@@ -26,6 +26,7 @@ import {
   generateKey,
 } from "../utils/security";
 import { urlEncode } from "../utils/urlencode";
+import { generateSecureKey } from "../legacy/utils/security";
 
 const router = new OpenAPIHono<Env>();
 
@@ -696,7 +697,7 @@ router.openapi(routes.accessKeys.create, async (c) => {
   const accountId = c.var.auth.accountId;
   const body = c.req.valid("json");
 
-  const keyName = generateAccessKey();
+  const keyName = generateSecureKey(accountId);
   const accessKey: Omit<AccessKey, "id"> = {
     name: keyName,
     friendlyName: body.friendlyName,

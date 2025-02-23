@@ -7,14 +7,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useKeycloak } from "@/keycloak/useKeycloak";
 import { useNavigate } from "@tanstack/react-router";
-import { LogOut, Settings, User } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 
 export const Navbar = () => {
   const navigate = useNavigate();
   const { keycloak } = useKeycloak();
   const account = keycloak.profile;
-
-  console.log("Navbar", account);
 
   const handleLogout = () => {
     keycloak.logout();

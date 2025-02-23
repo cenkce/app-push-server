@@ -12,9 +12,10 @@ export const account = sqliteTable("account", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  githubId: text("github_id"),
+  ssoId: text("sso_id").notNull(),
   createdTime: integer("created_time").notNull(),
   deletedAt: integer("deleted_at"),
+  linkedProviders: text("linked_providers").notNull(),
 });
 
 // Account relations

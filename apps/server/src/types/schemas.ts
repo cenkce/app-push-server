@@ -105,7 +105,7 @@ export const AccountSchema = z.object({
   email: z.string(),
   name: z.string(),
   linkedProviders: z.array(z.string()),
-  gitHubId: z.string().optional(),
+  ssoId: z.string(),
   createdTime: z.number(),
 });
 export type Account = z.infer<typeof AccountSchema>;
