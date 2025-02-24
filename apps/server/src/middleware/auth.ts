@@ -138,9 +138,14 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
     const storage = getStorageProvider(c);
 
     if (!publicKeyResponse)
-      publicKeyResponse = await fetch(
-        `${keycloakUrl}/realms/${realm}/protocol/openid-connect/certs`
-      ).then((res) => res.json());
+      try {
+        publicKeyResponse = await fetch(
+          `${keycloakUrl}/realms/${realm}/protocol/openid-connect/certs`
+        ).then((res) => res.json());
+      } catch (error) {
+        console.error("Error fetching public key:", error);
+        throw new HTTPException(401, { message: "Authentication server connection is failed" });
+      }
 
     try {
       let accountId: string | undefined;

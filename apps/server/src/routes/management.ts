@@ -23,11 +23,9 @@ import { createPackageDiffer } from "../utils/package-differ";
 import {
   generateAccessKey,
   generateDeploymentKey,
-  generateKey,
   generateRandomKey,
 } from "../utils/security";
 import { urlEncode } from "../utils/urlencode";
-import { generateSecureKeyWithAccountId } from "../legacy/utils/security";
 
 const router = new OpenAPIHono<Env>();
 

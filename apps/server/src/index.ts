@@ -8,9 +8,10 @@ import { authenticatedRoute, authRouter } from "./routes/auth";
 import { managementRouter } from "./routes/management";
 import { errorHandler, handle404 } from "./storage/error";
 import type { Env } from "./types/env";
+import { trimTrailingSlash } from "hono/trailing-slash";
 
 // Create Hono app
-const app = new OpenAPIHono<Env>();
+const app = new OpenAPIHono<Env>({ strict: false });
 
 // Global middleware
 app.use("*", logging());
@@ -22,7 +23,7 @@ app.use("*", (c, next) => corsMiddleware(c)(c, next));
 app.route("/", authenticatedRoute);
 app.route("/auth", authRouter);
 app.route("/acquisition", acquisitionRouter);
-app.route("/management", managementRouter);
+app.route("/", managementRouter);
 
 // Global error handling
 app.notFound(handle404);
