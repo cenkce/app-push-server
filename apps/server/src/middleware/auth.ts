@@ -136,16 +136,7 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
     const realm = c.env.KEYCLOAK_REALM;
     const clientId = c.env.KEYCLOAK_CLIENT_ID;
     const storage = getStorageProvider(c);
-
-    if (!publicKeyResponse)
-      try {
-        publicKeyResponse = await fetch(
-          `${keycloakUrl}/realms/${realm}/protocol/openid-connect/certs`
-        ).then((res) => res.json());
-      } catch (error) {
-        console.error("Error fetching public key:", error);
-        throw new HTTPException(401, { message: "Authentication server connection is failed" });
-      }
+    const authHeader = c.req.header("Authorization");
 
     try {
       let accountId: string | undefined;
@@ -153,7 +144,6 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
 
       let token: string | undefined;
 
-      const authHeader = c.req.header("Authorization");
       if (authHeader) {
         const [type, headerToken] = authHeader.split(" ");
         if (type === "Bearer") {
@@ -169,6 +159,7 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
       try {
         accountId = await storage.getAccountIdFromAccessKey(token);
         if (accountId) account = await storage.getAccount(accountId as string);
+    
       } catch (e) {
         if (e instanceof Error && "code" in e && e.code === ErrorCode.Expired) {
           throw new HTTPException(401, { message: "Access key expired" });
@@ -185,6 +176,16 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
         await next();
         return;
       }
+
+      if (!publicKeyResponse)
+        try {
+          publicKeyResponse = await fetch(
+            `${keycloakUrl}/realms/${realm}/protocol/openid-connect/certs`
+          ).then((res) => res.json());
+        } catch (error) {
+          console.error("Error fetching public key:", error);
+          throw new HTTPException(401, { message: "Authentication server connection is failed" });
+        }
 
       const res = await validateToken({
         publicKeyResponse,

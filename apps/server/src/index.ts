@@ -24,6 +24,7 @@ app.route("/", authenticatedRoute);
 app.route("/auth", authRouter);
 app.route("/acquisition", acquisitionRouter);
 app.route("/", managementRouter);
+app.route("/management", managementRouter);
 
 // Global error handling
 app.notFound(handle404);
