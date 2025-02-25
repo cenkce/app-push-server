@@ -22,7 +22,7 @@ app.use("*", (c, next) => corsMiddleware(c)(c, next));
 // Mount routers
 app.route("/", authenticatedRoute);
 app.route("/auth", authRouter);
-app.route("/acquisition", acquisitionRouter);
+app.route("/", acquisitionRouter);
 app.route("/", managementRouter);
 app.route("/management", managementRouter);
 

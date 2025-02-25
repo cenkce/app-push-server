@@ -1876,7 +1876,7 @@ export class Api<SecurityDataType extends unknown> {
         },
         any
       >({
-        path: `/acquisition/v0.1/public/codepush/update_check`,
+        path: `/v0.1/public/codepush/update_check`,
         method: "GET",
         query: query,
         format: "json",

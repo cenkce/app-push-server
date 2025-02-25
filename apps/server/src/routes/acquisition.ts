@@ -1,4 +1,4 @@
-import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
+import { OpenAPIHono, RouteHandler, createRoute } from "@hono/zod-openapi";
 import { compare, satisfies } from "compare-versions";
 import qs from "qs";
 import type { z } from "zod";
@@ -21,8 +21,10 @@ import { convertObjectToSnakeCase } from "../utils/convention";
 import { MetricsManager } from "../domain/metrics";
 import { rolloutStrategy } from "../domain/rollout";
 import { normalizeVersion } from "../utils/version";
+import { HTTPException } from "hono/http-exception";
+import { Context } from "hono";
 
-const router = new OpenAPIHono<Env>();
+const router = new OpenAPIHono<Env>({ strict: false });
 
 const routes = {
   updateCheck: createRoute({
@@ -155,18 +157,37 @@ const routes = {
   }),
 };
 
-router.openapi(routes.updateCheck, async (c) => {
+type UpdateCheckHandlerParams = Parameters<
+  RouteHandler<typeof routes.updateCheck, Env>
+>;
+type UpdateCheckHanderFn = (
+  c: UpdateCheckHandlerParams[0],
+  next: UpdateCheckHandlerParams[1],
+  query: UpdateCheckParams
+) => ReturnType<RouteHandler<typeof routes.updateCheck, Env>>;
+
+const updateCheckHandler: UpdateCheckHanderFn = async (
+  c: UpdateCheckHandlerParams[0],
+  next: UpdateCheckHandlerParams[1],
+  query: UpdateCheckParams = c.req.valid("query")
+) => {
   const storage = getStorageProvider(c);
-  const query = c.req.valid("query");
 
   const { deploymentKey, appVersion: receivedAppVersion } = query;
   const sanitizedAppVersion = normalizeVersion(receivedAppVersion);
 
+  try {
+    // Check if deployment exists
+    await storage.getDeploymentInfo(deploymentKey.trim());
+  } catch (error) {
+    console.error("Error in updateCheck:", error);
+    throw new HTTPException(401, { message: "Has no access to deployment" });
+  }
   const deploymentInfo = await storage.getDeploymentInfo(deploymentKey.trim());
   const history = await storage.getPackageHistory(
     "", // accountId not needed
     deploymentInfo.appId,
-    deploymentInfo.deploymentId,
+    deploymentInfo.deploymentId
   );
 
   // Handle empty package history
@@ -293,8 +314,8 @@ router.openapi(routes.updateCheck, async (c) => {
 
   // Handle rollout if specified
   /**
-   * Rollout support refers to the ability to gradually deliver an update to a percentage of clients rather than releasing it to everyone at once. 
-   * In the code, if a package has a rollout percentage less than 100, only clients whose unique IDs (determined by a rollout strategy function) fall within that percentage will receive the update. 
+   * Rollout support refers to the ability to gradually deliver an update to a percentage of clients rather than releasing it to everyone at once.
+   * In the code, if a package has a rollout percentage less than 100, only clients whose unique IDs (determined by a rollout strategy function) fall within that percentage will receive the update.
    * This helps in testing or slowly releasing updates to monitor for issues before a full rollout.
    */
   if (
@@ -314,7 +335,7 @@ router.openapi(routes.updateCheck, async (c) => {
     const isInRollout = rolloutStrategy(
       query.clientUniqueId,
       latestSatisfyingEnabledPackage.rollout,
-      latestSatisfyingEnabledPackage.packageHash,
+      latestSatisfyingEnabledPackage.packageHash
     );
 
     if (!isInRollout) {
@@ -342,9 +363,15 @@ router.openapi(routes.updateCheck, async (c) => {
       downloadURL: downloadUrl,
     },
   } satisfies UpdateCheckResponse);
+};
+
+router.openapi(routes.updateCheck, (c, next) => {
+  const query = c.req.valid("query");
+
+  return updateCheckHandler(c, next, query);
 });
 
-router.openapi(routes.updateCheckV1, async (c) => {
+router.openapi(routes.updateCheckV1, async (c, next) => {
   const query = c.req.valid("query");
 
   try {
@@ -359,23 +386,30 @@ router.openapi(routes.updateCheckV1, async (c) => {
     } satisfies z.infer<typeof UpdateCheckParams>;
 
     // Create a new context with transformed query
-    const transformedContext = {
-      ...c,
-      req: { ...c.req, query: camelCaseQuery },
-    };
+    // const transformedContext = {
+    //   ...c,
+    //   req: { ...c.req, query: camelCaseQuery },
+    // };
 
     // Reuse updateCheck logic
-    const response = await router.fetch(
-      new Request(
-        `${c.req.url.split("?")[0].replace("/v0.1/public/codepush/update_check", "/updateCheck")}?${qs.stringify(
-          camelCaseQuery,
-        )}`,
-        { headers: c.req.raw.headers },
-      ),
-      transformedContext.env,
+    // @TODO it must be refactored
+    // const response = await router.fetch(
+    //   new Request(
+    //     `${c.req.url.split("?")[0].replace("/v0.1/public/codepush/update_check", "/updateCheck")}?${qs.stringify(
+    //       camelCaseQuery
+    //     )}`,
+    //     { headers: c.req.raw.headers }
+    //   ),
+    //   transformedContext.env
+    // );
+
+    const response = await updateCheckHandler(
+      c as unknown as Context<Env>,
+      next,
+      camelCaseQuery
     );
 
-    const result = UpdateCheckResponseSchema.parse(await response.json());
+    const result = UpdateCheckResponseSchema.parse(response._data);
 
     // Transform camelCase response to snake_case for legacy endpoint
     const legacyResponse: LegacyUpdateCheckResponse = {
@@ -416,7 +450,7 @@ router.openapi(routes.deploymentReport, async (c) => {
       body.deploymentKey.trim(),
       body.label ?? "",
       body.status,
-      body.clientUniqueId,
+      body.clientUniqueId
     );
   } else {
     await metrics.recordDeployment(
@@ -424,7 +458,7 @@ router.openapi(routes.deploymentReport, async (c) => {
       body.label || body.appVersion,
       body.clientUniqueId,
       body.previousDeploymentKey?.trim(),
-      body.previousLabelOrAppVersion,
+      body.previousLabelOrAppVersion
     );
   }
 
@@ -441,7 +475,7 @@ router.openapi(routes.deploymentReportV1, async (c) => {
       body.deploymentKey.trim(),
       body.label ?? "",
       body.status,
-      body.clientUniqueId,
+      body.clientUniqueId
     );
   } else {
     await metrics.recordDeployment(
@@ -449,7 +483,7 @@ router.openapi(routes.deploymentReportV1, async (c) => {
       body.label || body.appVersion,
       body.clientUniqueId,
       body.previousDeploymentKey?.trim(),
-      body.previousLabelOrAppVersion,
+      body.previousLabelOrAppVersion
     );
   }
 
@@ -464,7 +498,7 @@ router.openapi(routes.downloadReport, async (c) => {
   await metrics.recordDownload(
     body.deploymentKey.trim(),
     body.label,
-    body.clientUniqueId,
+    body.clientUniqueId
   );
 
   const response: ApiResponse = { status: "ok" };
@@ -478,7 +512,7 @@ router.openapi(routes.downloadReportV1, async (c) => {
   await metrics.recordDownload(
     body.deploymentKey.trim(),
     body.label,
-    body.clientUniqueId,
+    body.clientUniqueId
   );
 
   const response: ApiResponse = { status: "ok" };

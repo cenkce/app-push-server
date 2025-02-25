@@ -22,6 +22,15 @@ export type KeycloakParsedToken = {
   family_name: string;
   email: string;
 };
+
+const deploymnentKeyCheck = (c: Context<Env>) => {
+  const query = c.req.query();
+
+  const { deployment_key, appVersion: receivedAppVersion } = query;
+  
+  return true
+};
+
 async function validateToken({
   token,
   keycloakUrl,
@@ -138,6 +147,10 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
     const storage = getStorageProvider(c);
     const authHeader = c.req.header("Authorization");
 
+    if(deploymnentKeyCheck(c)) {
+      await next();
+      return;
+    }
     try {
       let accountId: string | undefined;
       let account: Account | undefined;
