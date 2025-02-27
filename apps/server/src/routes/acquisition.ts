@@ -1,6 +1,6 @@
 import { OpenAPIHono, RouteHandler, createRoute } from "@hono/zod-openapi";
 import { compare, satisfies } from "compare-versions";
-import qs from "qs";
+
 import type { z } from "zod";
 import { getStorageProvider } from "../storage/factory";
 import type { Env } from "../types/env";
@@ -164,9 +164,9 @@ type UpdateCheckHanderFn = (
   c: UpdateCheckHandlerParams[0],
   next: UpdateCheckHandlerParams[1],
   query: UpdateCheckParams
-) => ReturnType<RouteHandler<typeof routes.updateCheck, Env>>;
+) => Promise<UpdateCheckResponse>;
 
-const updateCheckHandler: UpdateCheckHanderFn = async (
+const updateCheckHandler = async (
   c: UpdateCheckHandlerParams[0],
   next: UpdateCheckHandlerParams[1],
   query: UpdateCheckParams = c.req.valid("query")
@@ -192,14 +192,14 @@ const updateCheckHandler: UpdateCheckHanderFn = async (
 
   // Handle empty package history
   if (!history || history.length === 0) {
-    return c.json({
+    return {
       updateInfo: {
         isAvailable: false,
         isMandatory: false,
         appVersion: receivedAppVersion,
         shouldRunBinaryVersion: true,
       },
-    } satisfies UpdateCheckResponse);
+    } satisfies UpdateCheckResponse;
   }
 
   // Find appropriate package using original CodePush logic
@@ -251,26 +251,26 @@ const updateCheckHandler: UpdateCheckHanderFn = async (
 
   // No packages at all
   if (!latestEnabledPackage) {
-    return c.json({
+    return {
       updateInfo: {
         isAvailable: false,
         isMandatory: false,
         appVersion: receivedAppVersion,
         shouldRunBinaryVersion: true,
       },
-    } satisfies UpdateCheckResponse);
+    } satisfies UpdateCheckResponse;
   }
 
   // No compatible package found for app version
   if (!latestSatisfyingEnabledPackage) {
-    return c.json({
+    return {
       updateInfo: {
         isAvailable: false,
         isMandatory: false,
         appVersion: receivedAppVersion,
         shouldRunBinaryVersion: true,
       },
-    } satisfies UpdateCheckResponse);
+    } satisfies UpdateCheckResponse;
   }
 
   // Check if client already has latest compatible version
@@ -294,7 +294,7 @@ const updateCheckHandler: UpdateCheckHanderFn = async (
       response.updateInfo.appVersion = latestEnabledPackage.appVersion;
     }
 
-    return c.json(response);
+    return response;
   }
 
   // Prepare update response with appropriate package
@@ -323,13 +323,13 @@ const updateCheckHandler: UpdateCheckHanderFn = async (
     latestSatisfyingEnabledPackage.rollout < 100
   ) {
     if (!query.clientUniqueId) {
-      return c.json({
+      return {
         updateInfo: {
           isAvailable: false,
           isMandatory: false,
           appVersion: receivedAppVersion,
         },
-      } satisfies UpdateCheckResponse);
+      } satisfies UpdateCheckResponse;
     }
 
     const isInRollout = rolloutStrategy(
@@ -339,18 +339,18 @@ const updateCheckHandler: UpdateCheckHanderFn = async (
     );
 
     if (!isInRollout) {
-      return c.json({
+      return {
         updateInfo: {
           isAvailable: false,
           isMandatory: false,
           appVersion: receivedAppVersion,
         },
-      } satisfies UpdateCheckResponse);
+      } satisfies UpdateCheckResponse;
     }
   }
 
   // Return update info
-  return c.json({
+  return {
     updateInfo: {
       isAvailable: true,
       isMandatory:
@@ -362,13 +362,14 @@ const updateCheckHandler: UpdateCheckHanderFn = async (
       description: latestSatisfyingEnabledPackage.description,
       downloadURL: downloadUrl,
     },
-  } satisfies UpdateCheckResponse);
+  } satisfies UpdateCheckResponse;
 };
 
-router.openapi(routes.updateCheck, (c, next) => {
+router.openapi(routes.updateCheck, async (c, next) => {
   const query = c.req.valid("query");
 
-  return updateCheckHandler(c, next, query);
+  const response = await updateCheckHandler(c, next, query);
+  return c.json(response);  
 });
 
 router.openapi(routes.updateCheckV1, async (c, next) => {
@@ -409,7 +410,7 @@ router.openapi(routes.updateCheckV1, async (c, next) => {
       camelCaseQuery
     );
 
-    const result = UpdateCheckResponseSchema.parse(response._data);
+    const result = UpdateCheckResponseSchema.parse(response);
 
     // Transform camelCase response to snake_case for legacy endpoint
     const legacyResponse: LegacyUpdateCheckResponse = {

@@ -147,10 +147,10 @@ export const authMiddleware = (): MiddlewareHandler<Env> => {
     const storage = getStorageProvider(c);
     const authHeader = c.req.header("Authorization");
 
-    if(deploymnentKeyCheck(c)) {
-      await next();
-      return;
-    }
+    // if(deploymnentKeyCheck(c)) {
+    //   await next();
+    //   return;
+    // }
     try {
       let accountId: string | undefined;
       let account: Account | undefined;

@@ -2,10 +2,9 @@ import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import type { Env } from "../types/env";
-import { Context } from "hono";
 
 export const authRouter = new OpenAPIHono<Env>();
-authRouter.use("/*", authMiddleware());
+authRouter.use(authMiddleware());
 
 const LoginErrorResponse = z.object({
   error: z.string(),
