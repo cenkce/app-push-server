@@ -45,54 +45,51 @@ const loginRoute = createRoute({
   component: LoginPage,
 });
 
-// Protected routes parent
-const protectedRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  id: "protected",
-  beforeLoad: authGuard,
-});
 
 // Protected routes
 const indexRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () => rootRoute,
   path: "/",
   component: DashboardPage,
+  beforeLoad: authGuard,
 });
 
 const appsRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () => rootRoute,
   path: "/apps",
   component: AppsPage,
+  beforeLoad: authGuard,
 });
 
 const appDetailRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () => rootRoute,
   path: "/apps/$appName",
   component: AppDetailPage,
+  beforeLoad: authGuard,
 });
 
 const deploymentDetailRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () => rootRoute,
   path: "/apps/$appName/deployments/$deploymentName",
   component: DeploymentDetailPage,
+  beforeLoad: authGuard,
 });
 
 const settingsRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () => rootRoute,
   path: "/settings",
   component: SettingsPage,
+  beforeLoad: authGuard,
 });
 
 // Create route tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  protectedRoute.addChildren([
-    indexRoute,
-    appsRoute,
-    appDetailRoute,
-    deploymentDetailRoute,
-    settingsRoute,
-  ]),
+  indexRoute,
+  appsRoute,
+  appDetailRoute,
+  deploymentDetailRoute,
+  settingsRoute,
 ]);
 
 // Create router

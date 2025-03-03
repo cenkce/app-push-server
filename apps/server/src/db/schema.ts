@@ -103,8 +103,8 @@ export const packages = sqliteTable("package", {
   isMandatory: integer("is_mandatory", { mode: "boolean" }).notNull(),
   rollout: integer("rollout"),
   size: integer("size").notNull(),
-  blobPath: text("blob_path").notNull(),
-  manifestBlobPath: text("manifest_blob_path"),
+  blobUrl: text("blob_url").notNull(),
+  manifestBlobUrl: text("manifest_blob_url"),
   packageHash: text("package_hash").notNull(),
   releaseMethod: text("release_method", {
     enum: ["Upload", "Promote", "Rollback"],

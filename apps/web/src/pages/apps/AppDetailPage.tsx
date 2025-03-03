@@ -25,7 +25,7 @@ import {
 import { useState } from "react";
 
 export const AppDetailPage = () => {
-  const { appName } = useParams({ from: "/protected/apps/$appName" });
+  const { appName } = useParams({ from: "/apps/$appName" });
   const [activeTab, setActiveTab] = useState("deployments");
   const [isCreateDeploymentOpen, setIsCreateDeploymentOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);

@@ -57,6 +57,7 @@ export const PackageInfoSchema = z.object({
 export type PackageInfo = z.infer<typeof PackageInfoSchema>;
 
 export const PackageSchema = z.object({
+  id: z.string().optional(),
   appVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
   blobUrl: z.string(),
   description: z.string().optional(),
@@ -64,6 +65,7 @@ export const PackageSchema = z.object({
   isDisabled: z.boolean(),
   isMandatory: z.boolean(),
   label: z.string().optional(),
+  deploymentId: z.string().optional().readonly(),
   manifestBlobUrl: z.string(),
   originalDeployment: z.string().optional(),
   originalLabel: z.string().optional(),
@@ -74,10 +76,12 @@ export const PackageSchema = z.object({
   size: z.number(),
   uploadTime: z.number(),
 });
+
+
 export type Package = z.infer<typeof PackageSchema>;
 
 export const DeploymentSchema = z.object({
-  id: z.string(),
+  id: z.string().readonly(),
   name: z.string(),
   key: z.string(),
   package: PackageSchema.nullish(),

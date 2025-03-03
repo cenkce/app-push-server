@@ -12,7 +12,6 @@ import {
   Download,
   RotateCcw,
   Upload,
-  Users,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -26,11 +25,11 @@ export const DeploymentDetailPage = () => {
     queryKey: ["deployment", appName, deploymentName],
     queryFn: async () => {
       const response =
-        await api.managementAppsAppNameDeploymentsDeploymentNameGet(
+        await api.management.appsAppNameDeploymentsDeploymentNameList(
           appName,
-          deploymentName,
+          deploymentName
         );
-      return response.data;
+      return response;
     },
   });
 
@@ -38,11 +37,11 @@ export const DeploymentDetailPage = () => {
     queryKey: ["metrics", appName, deploymentName],
     queryFn: async () => {
       const response =
-        await api.managementAppsAppNameDeploymentsDeploymentNameMetricsGet(
+        await api.management.appsAppNameDeploymentsDeploymentNameMetricsList(
           appName,
-          deploymentName,
+          deploymentName
         );
-      return response.data;
+      return response;
     },
   });
 
@@ -98,7 +97,7 @@ export const DeploymentDetailPage = () => {
             <div className="text-2xl font-bold">
               {Object.values(metrics).reduce(
                 (sum, m) => sum + (m.active ?? 0),
-                0,
+                0
               )}
             </div>
           </CardContent>
@@ -111,7 +110,7 @@ export const DeploymentDetailPage = () => {
             <div className="text-2xl font-bold">
               {Object.values(metrics).reduce(
                 (sum, m) => sum + (m.downloads ?? 0),
-                0,
+                0
               )}
             </div>
           </CardContent>
@@ -124,7 +123,7 @@ export const DeploymentDetailPage = () => {
             <div className="text-2xl font-bold">
               {Object.values(metrics).reduce(
                 (sum, m) => sum + (m.installed ?? 0),
-                0,
+                0
               )}
             </div>
           </CardContent>
@@ -139,7 +138,7 @@ export const DeploymentDetailPage = () => {
             <div className="text-2xl font-bold">
               {Object.values(metrics).reduce(
                 (sum, m) => sum + (m.failed ?? 0),
-                0,
+                0
               )}
             </div>
           </CardContent>

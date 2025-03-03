@@ -634,7 +634,7 @@ const routes = {
 
 function throwIfInvalidPermissions(
   app: App,
-  requiredPermission: "Owner" | "Collaborator",
+  requiredPermission: "Owner" | "Collaborator"
 ): void {
   const collaboratorsMap = app.collaborators;
   let isPermitted = false;
@@ -711,7 +711,7 @@ router.openapi(routes.accessKeys.create, async (c) => {
   const existingKeys = await storage.getAccessKeys(accountId);
   const isDuplicateName = existingKeys.some((key) => key.name === keyName);
   const isDuplicateFriendlyName = existingKeys.some(
-    (key) => key.friendlyName === body.friendlyName,
+    (key) => key.friendlyName === body.friendlyName
   );
 
   if (isDuplicateName) {
@@ -739,7 +739,7 @@ router.openapi(routes.accessKeys.get, async (c) => {
 
   const accessKeys = await storage.getAccessKeys(accountId);
   const accessKey = accessKeys.find(
-    (key) => key.name === accessKeyName || key.friendlyName === accessKeyName,
+    (key) => key.name === accessKeyName || key.friendlyName === accessKeyName
   );
 
   if (!accessKey) {
@@ -763,7 +763,7 @@ router.openapi(routes.accessKeys.update, async (c) => {
 
   const accessKeys = await storage.getAccessKeys(accountId);
   const accessKey = accessKeys.find(
-    (key) => key.name === accessKeyName || key.friendlyName === accessKeyName,
+    (key) => key.name === accessKeyName || key.friendlyName === accessKeyName
   );
 
   if (!accessKey) {
@@ -775,7 +775,7 @@ router.openapi(routes.accessKeys.update, async (c) => {
   if (updates.friendlyName) {
     const isDuplicate = accessKeys.some(
       (key) =>
-        key.id !== accessKey.id && key.friendlyName === updates.friendlyName,
+        key.id !== accessKey.id && key.friendlyName === updates.friendlyName
     );
 
     if (isDuplicate) {
@@ -807,7 +807,7 @@ router.openapi(routes.accessKeys.remove, async (c) => {
 
   const accessKeys = await storage.getAccessKeys(accountId);
   const accessKey = accessKeys.find(
-    (key) => key.name === accessKeyName || key.friendlyName === accessKeyName,
+    (key) => key.name === accessKeyName || key.friendlyName === accessKeyName
   );
 
   if (!accessKey) {
@@ -862,8 +862,8 @@ router.openapi(routes.apps.create, async (c) => {
           name,
           key: generateDeploymentKey(accountId),
           createdTime: Date.now(),
-        }),
-      ),
+        })
+      )
     );
     app.deployments = defaultDeployments.sort((a, b) => a.localeCompare(b));
   }
@@ -1010,12 +1010,12 @@ router.openapi(routes.deployments.create, async (c) => {
   const deployment = await storage.getDeployment(
     accountId,
     app.id,
-    deploymentId,
+    deploymentId
   );
 
   c.header(
     "Location",
-    urlEncode`/apps/${appName}/deployments/${deployment.name}`,
+    urlEncode`/apps/${appName}/deployments/${deployment.name}`
   );
   return c.json({ deployment }, 201);
 });
@@ -1157,16 +1157,22 @@ router.openapi(routes.deployments.release, async (c) => {
     storage,
     app.id,
     deployment.id,
-    packageData,
+    packageData
   );
   const manifestResult = await differ.generateManifest();
+
+  if (!manifestResult) {
+    throw new HTTPException(400, {
+      message: "The uploaded package has no a manifest file",
+    });
+  }
   const packageHash = await manifestResult.computeHash();
 
   // Check if this is a duplicate of the current release
   const history = await storage.getPackageHistory(
     accountId,
     app.id,
-    deployment.id,
+    deployment.id
   );
   const lastPackage = history[history.length - 1];
   if (lastPackage && lastPackage.packageHash === packageHash) {
@@ -1179,20 +1185,15 @@ router.openapi(routes.deployments.release, async (c) => {
   // Store package blob
   const blobId = generateRandomKey();
   await storage.addBlob(blobId, packageData, packageData.byteLength);
-  const blobUrl = await storage.getBlobUrl(blobId);
-
+  const blobUrl = storage.getBlobUrl(blobId);
+  let manifestUrl:string = "";
   // Store manifest if available
-  let manifestUrl = "";
-  if (manifestResult) {
+  if(manifestResult) {
     const manifestBlobId = generateRandomKey();
     const manifestJson = manifestResult.serialize();
     const manifestBuffer = new TextEncoder().encode(manifestJson);
-    await storage.addBlob(
-      manifestBlobId,
-      manifestBuffer,
-      manifestBuffer.length,
-    );
-    manifestUrl = await storage.getBlobUrl(manifestBlobId);
+    await storage.addBlob(manifestBlobId, manifestBuffer, manifestBuffer.length);
+    manifestUrl = storage.getBlobUrl(manifestBlobId);
   }
 
   const newPackage: Omit<Package, "label"> = {
@@ -1209,12 +1210,14 @@ router.openapi(routes.deployments.release, async (c) => {
     releaseMethod: "Upload",
   };
 
+  console.log('newPackage blobId : ', blobId);
+
   const releasedPackage = await storage.commitPackage(
-    accountId,
-    app.id,
-    deployment.id,
     newPackage,
+    blobId,
+    deployment.id
   );
+
 
   // Generate diffs in background
   if (manifestResult) {
@@ -1223,7 +1226,7 @@ router.openapi(routes.deployments.release, async (c) => {
 
   c.header(
     "Location",
-    urlEncode`/apps/${appName}/deployments/${deploymentName}`,
+    urlEncode`/apps/${appName}/deployments/${deploymentName}`
   );
   return c.json({ package: releasedPackage }, 201);
 });
@@ -1246,7 +1249,7 @@ router.openapi(routes.deployments.promote, async (c) => {
 
   const deployments = await storage.getDeployments(accountId, app.id);
   const sourceDeployment = deployments.find(
-    (d) => d.name === sourceDeploymentName,
+    (d) => d.name === sourceDeploymentName
   );
   const destDeployment = deployments.find((d) => d.name === destDeploymentName);
 
@@ -1273,30 +1276,26 @@ router.openapi(routes.deployments.promote, async (c) => {
     });
   }
 
-  const newPackage: Omit<Package, "label"> = {
+  const newPackage = {
     ...sourceDeployment.package,
     isDisabled: packageInfo?.isDisabled ?? sourceDeployment.package.isDisabled,
     isMandatory:
       packageInfo?.isMandatory ?? sourceDeployment.package.isMandatory,
     description:
       packageInfo?.description ?? sourceDeployment.package.description,
+    deploymentId: destDeployment.id,
     rollout: packageInfo?.rollout ?? null,
     uploadTime: Date.now(),
     releaseMethod: "Promote",
     originalLabel: sourceDeployment.package.label,
     originalDeployment: sourceDeploymentName,
-  };
+  } satisfies Package;
 
-  const promotedPackage = await storage.commitPackage(
-    accountId,
-    app.id,
-    destDeployment.id,
-    newPackage,
-  );
+  const promotedPackage = await storage.updatePackage(newPackage);
 
   c.header(
     "Location",
-    urlEncode`/apps/${appName}/deployments/${destDeploymentName}`,
+    urlEncode`/apps/${appName}/deployments/${destDeploymentName}`
   );
   return c.json({ package: promotedPackage }, 201);
 });
@@ -1327,7 +1326,7 @@ router.openapi(routes.deployments.rollback, async (c) => {
   const history = await storage.getPackageHistory(
     accountId,
     app.id,
-    deployment.id,
+    deployment.id
   );
   if (!history.length) {
     throw new HTTPException(404, {
@@ -1385,15 +1384,14 @@ router.openapi(routes.deployments.rollback, async (c) => {
   };
 
   const newPackage = await storage.commitPackage(
-    accountId,
-    app.id,
-    deployment.id,
     rollbackPackage,
+    generateRandomKey(),
+    deployment.id,
   );
 
   c.header(
     "Location",
-    urlEncode`/apps/${appName}/deployments/${deploymentName}`,
+    urlEncode`/apps/${appName}/deployments/${deploymentName}`
   );
   return c.json({ package: newPackage }, 201);
 });
@@ -1459,7 +1457,6 @@ router.openapi(routes.collaborators.remove, async (c) => {
   const collaborators = await storage.getCollaborators(accountId, app.id);
   const collaborator = collaborators[email];
 
-
   if (!collaborator) {
     throw new HTTPException(404, {
       message: "The specified account is not a collaborator for this app",
@@ -1467,7 +1464,7 @@ router.openapi(routes.collaborators.remove, async (c) => {
   }
 
   const isOwner = Object.values(collaborators).some(
-    (c) => c.accountId === accountId && c.permission === "Owner",
+    (c) => c.accountId === accountId && c.permission === "Owner"
   );
   const isSelfRemoval = collaborator.accountId === accountId;
 

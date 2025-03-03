@@ -1,73 +1,101 @@
-import { AwsClient } from "aws4fetch";
+// import { AwsClient } from "aws4fetch";
 import type { Context } from "hono";
 import type { Env } from "../types/env";
 import { ErrorCode, isStorageError } from "../types/error";
 import { createStorageError } from "./storage";
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export class BlobStorageProvider {
   private readonly storage: R2Bucket;
-  private readonly aws: AwsClient;
+  private readonly aws: S3Client;
   private readonly accountId: string;
   private readonly bucketName: string;
+  private R2_URL: string;
 
   constructor(private readonly ctx: Context<Env>) {
     this.storage = ctx.env.STORAGE_BUCKET;
     this.accountId = ctx.env.ACCOUNT_ID;
     this.bucketName = ctx.env.R2_BUCKET_NAME;
-
-    this.aws = new AwsClient({
-      accessKeyId: ctx.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: ctx.env.R2_SECRET_ACCESS_KEY,
+    this.R2_URL = `https://${this.accountId}.r2.cloudflarestorage.com`;
+    this.aws = new S3Client({
+      region: "auto",
+      endpoint: this.R2_URL,
+      logger: console,
+      credentials: {
+        accessKeyId: ctx.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: ctx.env.R2_SECRET_ACCESS_KEY,
+      },
     });
   }
 
   async addBlob(
     blobId: string,
     data: ArrayBuffer,
-    size: number,
+    size: number
   ): Promise<string> {
     try {
-      await this.storage.put(blobId, data, {
-        customMetadata: {
-          size: size.toString(),
+      const signePutdUrl = await this.getBlobSignedUrl(blobId, "PUT");
+
+      const resp = await fetch(signePutdUrl, {
+        method: "PUT",
+        body: data,
+        headers: {
+          "Content-Length": size.toString(),
         },
       });
+
+      if (resp.status !== 200) {
+        console.log("resp", resp.url);
+        throw new Error(
+          "Failed to upload blob" +
+            resp.status.toString() +
+            " " +
+            resp.statusText
+        );
+      }
+
+      // const resp = await this.storage.put(blobId, data, {
+      //   customMetadata: {
+      //     size: size.toString(),
+      //   },
+      // });
+
       return blobId;
     } catch (error) {
       console.error("Error uploading blob:", error);
       throw createStorageError(
         ErrorCode.ConnectionFailed,
-        "Failed to upload blob to storage",
+        "Failed to upload blob to storage"
       );
     }
   }
 
-  async getBlobUrl(path: string): Promise<string> {
+  getBlobUrl(packageId: string): string {
+    return `${packageId}`;
+  }
+
+  async getBlobSignedUrl(
+    path: string,
+    method: "PUT" | "GET" = "GET"
+  ): Promise<string> {
     try {
-      const object = await this.storage.head(path);
-      if (!object) {
-        throw createStorageError(ErrorCode.NotFound, "Blob not found");
-      }
 
-      // Construct URL for the R2 object
-      const url = new URL(
-        `https://${this.bucketName}.${this.accountId}.r2.cloudflarestorage.com/${path}`,
+      const key = path.split("/").at(-1);
+
+      const signed = await getSignedUrl(
+        this.aws,
+        method === "GET"
+          ? new GetObjectCommand({ Bucket: this.bucketName, Key: key })
+          : new PutObjectCommand({ Bucket: this.bucketName, Key: key }),
+        { expiresIn: 3600 }
       );
 
-      // Set expiration to 1 hour (3600 seconds)
-      url.searchParams.set("X-Amz-Expires", "3600");
-
-      // Generate presigned URL
-      const signed = await this.aws.sign(
-        new Request(url, {
-          method: "GET",
-        }),
-        {
-          aws: { signQuery: true },
-        },
-      );
-
-      return signed.url;
+      return signed;
     } catch (error) {
       if (isStorageError(error) && error.code === ErrorCode.NotFound) {
         throw error;
@@ -75,7 +103,7 @@ export class BlobStorageProvider {
       console.error("Error getting blob URL:", error);
       throw createStorageError(
         ErrorCode.ConnectionFailed,
-        "Failed to get blob URL",
+        "Failed to get blob URL"
       );
     }
   }
@@ -87,7 +115,7 @@ export class BlobStorageProvider {
       console.error("Error removing blob:", error);
       throw createStorageError(
         ErrorCode.ConnectionFailed,
-        "Failed to remove blob",
+        "Failed to remove blob"
       );
     }
   }
@@ -106,7 +134,7 @@ export class BlobStorageProvider {
         await sourceObject.arrayBuffer(),
         {
           customMetadata: sourceObject.customMetadata,
-        },
+        }
       );
 
       // Delete original
@@ -118,7 +146,7 @@ export class BlobStorageProvider {
       console.error("Error moving blob:", error);
       throw createStorageError(
         ErrorCode.ConnectionFailed,
-        "Failed to move blob",
+        "Failed to move blob"
       );
     }
   }
@@ -150,7 +178,7 @@ export class BlobStorageProvider {
       console.error("Error deleting path:", error);
       throw createStorageError(
         ErrorCode.ConnectionFailed,
-        "Failed to delete path",
+        "Failed to delete path"
       );
     }
   }
@@ -162,7 +190,7 @@ export class BlobStorageProvider {
       console.error("Error deleting objects:", error);
       throw createStorageError(
         ErrorCode.ConnectionFailed,
-        "Failed to delete objects",
+        "Failed to delete objects"
       );
     }
   }

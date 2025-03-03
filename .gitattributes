@@ -1,0 +1,31 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# JavaScript
+*.js     text diff=javascript
+*.jsx    text diff=javascript
+*.cjs    text diff=javascript
+*.mjs    text diff=javascript
+
+# TypeScript
+*.ts     text diff=typescript
+*.tsx    text diff=typescript
+*.d.ts   text
+
+# CSS
+*.css    text diff=css
+*.scss   text diff=css
+*.sass   text diff=css
+*.less   text diff=css
+
+# JSON
+*.json   text
+
+# Configuration files
+*.yml    text
+*.yaml   text
+*.config text
+
+# Documentation
+*.md     text diff=markdown
+*.txt    text

@@ -360,7 +360,7 @@ const updateCheckHandler = async (
       label: latestSatisfyingEnabledPackage.label,
       packageSize,
       description: latestSatisfyingEnabledPackage.description,
-      downloadURL: downloadUrl,
+      downloadURL: await storage.getBlobSignedUrl(downloadUrl),
     },
   } satisfies UpdateCheckResponse;
 };

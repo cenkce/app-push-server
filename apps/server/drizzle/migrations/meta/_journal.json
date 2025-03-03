@@ -43,6 +43,13 @@
       "when": 1740328896181,
       "tag": "0005_bizarre_midnight",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1740937503054,
+      "tag": "0006_faithful_hairball",
+      "breakpoints": true
     }
   ]
 }
